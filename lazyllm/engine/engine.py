@@ -27,29 +27,46 @@ class Engine(ABC):
             self.update(*args, **kwargs)
 
         def __setitem__(self, key, value):
-            if key in self._default_keys: return
+            if key in self._default_keys:
+                return
             super(__class__, self).__setitem__(key, value)
 
         def update(self, __other=None, **kw):
             if __other:
-                has_kv = hasattr(__other, 'keys') and callable(__other.keys) and hasattr(__other, 'items')
-                [self.__setitem__(k, v) for k, v in (__other.items() if has_kv else __other)
-                 if k not in self._default_keys]
+                has_kv = (
+                    hasattr(__other, "keys")
+                    and callable(__other.keys)
+                    and hasattr(__other, "items")
+                )
+                [
+                    self.__setitem__(k, v)
+                    for k, v in (__other.items() if has_kv else __other)
+                    if k not in self._default_keys
+                ]
             if kw:
-                [self.__setitem__(k, v) for k, v in kw.items() if k not in self._default_keys]
+                [
+                    self.__setitem__(k, v)
+                    for k, v in kw.items()
+                    if k not in self._default_keys
+                ]
 
         def __delitem__(self, key):
-            if key in self._default_keys: return
+            if key in self._default_keys:
+                return
             super(__class__, self).__delitem__(key)
 
         def pop(self, key, __default=None):
-            if key in self._default_keys: return __default
+            if key in self._default_keys:
+                return __default
             return super(__class__, self).pop(key, __default)
 
     def __init__(self):
-        self._nodes: Engine.DefaultLockedDict[str, Node] = Engine.DefaultLockedDict({
-            '__start__': Node(id='__start__', kind='__start__', name='__start__'),
-            '__end__': Node(id='__end__', kind='__end__', name='__end__')})
+        self._nodes: Engine.DefaultLockedDict[str, Node] = Engine.DefaultLockedDict(
+            {
+                "__start__": Node(id="__start__", kind="__start__", name="__start__"),
+                "__end__": Node(id="__end__", kind="__end__", name="__end__"),
+            }
+        )
         self._key_db_connect_message = None
 
     def __new__(cls):
@@ -62,40 +79,54 @@ class Engine(ABC):
         cls.__default_engine__ = engine
 
     @overload
-    def start(self, nodes: str) -> None:
-        ...
+    def start(self, nodes: str) -> None: ...
 
     @overload
-    def start(self, nodes: Dict[str, Any]) -> None:
-        ...
+    def start(self, nodes: Dict[str, Any]) -> None: ...
 
     @overload
-    def start(self, nodes: List[Dict] = [], edges: List[Dict] = [], resources: List[Dict] = [],
-              gid: Optional[str] = None, name: Optional[str] = None, _history_ids: Optional[List[str]] = None) -> str:
-        ...
+    def start(
+        self,
+        nodes: List[Dict] = [],
+        edges: List[Dict] = [],
+        resources: List[Dict] = [],
+        gid: Optional[str] = None,
+        name: Optional[str] = None,
+        _history_ids: Optional[List[str]] = None,
+    ) -> str: ...
 
     @overload
-    def update(self, nodes: List[Dict]) -> None:
-        ...
+    def update(self, nodes: List[Dict]) -> None: ...
 
     @overload
-    def update(self, gid: str, nodes: List[Dict], edges: List[Dict] = [],
-               resources: List[Dict] = []) -> str:
-        ...
+    def update(
+        self,
+        gid: str,
+        nodes: List[Dict],
+        edges: List[Dict] = [],
+        resources: List[Dict] = [],
+    ) -> str: ...
 
-    def release_node(self, nodeid: str): pass
-    def stop(self, node_id: Optional[str] = None, task_name: Optional[str] = None): pass
+    def release_node(self, nodeid: str):
+        pass
+
+    def stop(self, node_id: Optional[str] = None, task_name: Optional[str] = None):
+        pass
 
     def build_node(self, node) -> Node:
         return _constructor.build(node)
 
-    def set_db_connect_message(self, key_db_connect_message: Optional[Union[Dict, str]]) -> None:
+    def set_db_connect_message(
+        self, key_db_connect_message: Optional[Union[Dict, str]]
+    ) -> None:
         if isinstance(key_db_connect_message, str):
             key_db_connect_message = json.loads(key_db_connect_message)
 
         if not isinstance(key_db_connect_message, dict):
-            raise TypeError("The database connection information only supports dict and str, "
-                            f"not {type(key_db_connect_message)}.")
+            raise TypeError(
+                "The database connection information only supports dict and str, "
+                f"not {type(key_db_connect_message)}."
+            )
 
         self._key_db_connect_message = key_db_connect_message
 
@@ -120,44 +151,68 @@ class Engine(ABC):
         def _impl(nid, recursive):
             for id in self._nodes[nid].subitems:
                 yield id
-                if recursive: yield from self.subnodes(id, True)
+                if recursive:
+                    yield from self.subnodes(id, True)
+
         return list(_impl(nodeid, recursive))
 
     @abstractclassmethod
-    def launch_localllm_train_service(self): pass
+    def launch_localllm_train_service(self):
+        pass
 
     @abstractclassmethod
-    def launch_localllm_infer_service(self): pass
+    def launch_localllm_infer_service(self):
+        pass
 
     @abstractclassmethod
-    def get_infra_handle(self, token, mid) -> lazyllm.TrainableModule: pass
+    def get_infra_handle(self, token, mid) -> lazyllm.TrainableModule:
+        pass
 
 
 class NodeConstructor(object):
     builder_methods = dict()
 
     @classmethod
-    def register(cls, *names: Union[List[str], str], subitems: Optional[Union[str, List[str]]] = None):
-        if len(names) == 1 and isinstance(names[0], (tuple, list)): names = names[0]
+    def register(
+        cls,
+        *names: Union[List[str], str],
+        subitems: Optional[Union[str, List[str]]] = None,
+    ):
+        if len(names) == 1 and isinstance(names[0], (tuple, list)):
+            names = names[0]
 
         def impl(f):
             for name in names:
                 cls.builder_methods[name] = (f, subitems)
             return f
+
         return impl
 
     # build node recursively
     def build(self, node: Node):
-        if node.kind.startswith('__') and node.kind.endswith('__'):
+        if node.kind.startswith("__") and node.kind.endswith("__"):
             return None
         node_args = copy.copy(node.args)
-        node.arg_names = node_args.pop('_lazyllm_arg_names', None) if isinstance(node_args, dict) else None
-        node.enable_data_reflow = (node_args.pop('_lazyllm_enable_report', False)
-                                   if isinstance(node_args, dict) else False)
+        node.arg_names = (
+            node_args.pop("_lazyllm_arg_names", None)
+            if isinstance(node_args, dict)
+            else None
+        )
+        node.enable_data_reflow = (
+            node_args.pop("_lazyllm_enable_report", False)
+            if isinstance(node_args, dict)
+            else False
+        )
         if node.kind in NodeConstructor.builder_methods:
             createf, node.subitem_name = NodeConstructor.builder_methods[node.kind]
-            node.func = createf(**node_args) if isinstance(node_args, dict) and set(node_args.keys()).issubset(
-                set(inspect.getfullargspec(createf).args)) else createf(node_args)
+            node.func = (
+                createf(**node_args)
+                if isinstance(node_args, dict)
+                and set(node_args.keys()).issubset(
+                    set(inspect.getfullargspec(createf).args)
+                )
+                else createf(node_args)
+            )
             self._process_hook(node, node.func)
             return node
 
@@ -165,24 +220,29 @@ class NodeConstructor(object):
         init_args, build_args, other_args = dict(), dict(), dict()
 
         def get_args(cls, key, value, builder_key=None):
-            node_args = node_msgs[cls][builder_key][key] if builder_key else node_msgs[cls][key]
+            node_args = (
+                node_msgs[cls][builder_key][key] if builder_key else node_msgs[cls][key]
+            )
             if node_args.type == Node:
                 return Engine().build_node(value).func
             return node_args.getattr_f(value) if node_args.getattr_f else value
 
         for key, value in node_args.items():
-            if key in node_msgs['init_arguments']:
-                init_args[key] = get_args('init_arguments', key, value)
-            elif key in node_msgs['builder_argument']:
-                build_args[key] = get_args('builder_argument', key, value)
-            elif '.' in key:
-                builder_key, key = key.split('.')
-                if builder_key not in other_args: other_args[builder_key] = dict()
-                other_args[builder_key][key] = get_args('other_arguments', key, value, builder_key=builder_key)
+            if key in node_msgs["init_arguments"]:
+                init_args[key] = get_args("init_arguments", key, value)
+            elif key in node_msgs["builder_argument"]:
+                build_args[key] = get_args("builder_argument", key, value)
+            elif "." in key:
+                builder_key, key = key.split(".")
+                if builder_key not in other_args:
+                    other_args[builder_key] = dict()
+                other_args[builder_key][key] = get_args(
+                    "other_arguments", key, value, builder_key=builder_key
+                )
             else:
-                raise KeyError(f'Invalid key `{key}` found')
+                raise KeyError(f"Invalid key `{key}` found")
 
-        module = node_msgs['module'](**init_args)
+        module = node_msgs["module"](**init_args)
         for key, value in build_args.items():
             module = getattr(module, key)(value, **other_args.get(key, dict()))
         node.func = module
@@ -200,17 +260,31 @@ _constructor = NodeConstructor()
 
 
 class ServerGraph(lazyllm.ModuleBase):
-    def __init__(self, g: lazyllm.graph, server: Node, web: Node, _history_ids: Optional[List[str]] = None):
+    def __init__(
+        self,
+        g: lazyllm.graph,
+        server: Node,
+        web: Node,
+        _history_ids: Optional[List[str]] = None,
+    ):
         super().__init__()
         self._g = lazyllm.ActionModule(g)
         self._history_ids = _history_ids
         if server:
-            if server.args.get('port'): raise NotImplementedError('Port is not supported now')
+            if server.args.get("port"):
+                raise NotImplementedError("Port is not supported now")
             self._g = lazyllm.ServerModule(g)
         if web:
-            port = self._get_port(web.args['port'])
-            self._web = lazyllm.WebModule(g, port=port, title=web.args['title'], audio=web.args['audio'],
-                                          history=[Engine().build_node(h).func for h in web.args.get('history', [])])
+            port = self._get_port(web.args["port"])
+            self._web = lazyllm.WebModule(
+                g,
+                port=port,
+                title=web.args["title"],
+                audio=web.args["audio"],
+                history=[
+                    Engine().build_node(h).func for h in web.args.get("history", [])
+                ],
+            )
 
     def forward(self, *args, **kw):
         return self._g(*args, **kw)
@@ -218,15 +292,17 @@ class ServerGraph(lazyllm.ModuleBase):
     # TODO(wangzhihong)
     def _update(self, *, mode=None, recursive=True):
         super(__class__, self)._update(mode=mode, recursive=recursive)
-        if hasattr(self, '_web'): self._web.start()
+        if hasattr(self, "_web"):
+            self._web.start()
         return self
 
     def _get_port(self, port):
-        if not port: return None
-        elif ',' in port:
-            return list(int(p.strip()) for p in port.split(','))
-        elif '-' in port:
-            left, right = tuple(int(p.strip()) for p in port.split('-'))
+        if not port:
+            return None
+        elif "," in port:
+            return list(int(p.strip()) for p in port.split(","))
+        elif "-" in port:
+            left, right = tuple(int(p.strip()) for p in port.split("-"))
             assert left < right
             return range(left, right)
         return int(port)
@@ -239,7 +315,7 @@ class ServerGraph(lazyllm.ModuleBase):
 
     @property
     def web_url(self):
-        if hasattr(self, '_web'):
+        if hasattr(self, "_web"):
             return self._web.url
         return None
 
@@ -254,27 +330,46 @@ class ServerResource(object):
         self._args = args
 
     def status(self):
-        return self._graph._g.status if self._kind == 'server' else self._graph._web.status
+        return (
+            self._graph._g.status if self._kind == "server" else self._graph._web.status
+        )
 
 
-@NodeConstructor.register('web', 'server')
+@NodeConstructor.register("web", "server")
 def make_server_resource(kind: str, graph: ServerGraph, args: Dict[str, Any]):
     return ServerResource(graph, kind, args)
 
 
-@NodeConstructor.register('Graph', 'SubGraph', subitems=['nodes', 'resources'])
-def make_graph(nodes: List[dict], edges: List[Union[List[str], dict]] = [],
-               resources: List[dict] = [], enable_server: bool = True, _history_ids: Optional[List[str]] = None):
+@NodeConstructor.register("Graph", "SubGraph", subitems=["nodes", "resources"])
+def make_graph(
+    nodes: List[dict],
+    edges: List[Union[List[str], dict]] = [],
+    resources: List[dict] = [],
+    enable_server: bool = True,
+    _history_ids: Optional[List[str]] = None,
+):
     engine = Engine()
     server_resources = dict(server=None, web=None)
     for resource in resources:
-        if resource['kind'] in server_resources:
-            assert enable_server, 'Web and Api server are not allowed outside graph and subgraph'
-            assert server_resources[resource['kind']] is None, f'Duplicated {resource["kind"]} resource'
-            server_resources[resource['kind']] = Node(id=resource['id'], kind=resource['kind'],
-                                                      name=resource['name'], args=resource['args'])
+        if resource["kind"] in server_resources:
+            assert (
+                enable_server
+            ), "Web and Api server are not allowed outside graph and subgraph"
+            assert (
+                server_resources[resource["kind"]] is None
+            ), f'Duplicated {resource["kind"]} resource'
+            server_resources[resource["kind"]] = Node(
+                id=resource["id"],
+                kind=resource["kind"],
+                name=resource["name"],
+                args=resource["args"],
+            )
 
-    resources = [engine.build_node(resource) for resource in resources if resource['kind'] not in server_resources]
+    resources = [
+        engine.build_node(resource)
+        for resource in resources
+        if resource["kind"] not in server_resources
+    ]
     nodes: List[Node] = [engine.build_node(node) for node in nodes]
 
     with graph() as g:
@@ -283,21 +378,38 @@ def make_graph(nodes: List[dict], edges: List[Union[List[str], dict]] = [],
     g.set_node_arg_name([node.arg_names for node in nodes])
 
     if not edges:
-        edges = ([dict(iid='__start__', oid=nodes[0].id)] + [
-            dict(iid=nodes[i].id, oid=nodes[i + 1].id) for i in range(len(nodes) - 1)] + [
-            dict(iid=nodes[-1].id, oid='__end__')])
+        edges = (
+            [dict(iid="__start__", oid=nodes[0].id)]
+            + [
+                dict(iid=nodes[i].id, oid=nodes[i + 1].id)
+                for i in range(len(nodes) - 1)
+            ]
+            + [dict(iid=nodes[-1].id, oid="__end__")]
+        )
 
     for edge in edges:
-        if isinstance(edge, (tuple, list)): edge = dict(iid=edge[0], oid=edge[1])
-        if formatter := edge.get('formatter'):
-            assert formatter.startswith(('*[', '[', '}')) and formatter.endswith((']', '}'))
+        if isinstance(edge, (tuple, list)):
+            edge = dict(iid=edge[0], oid=edge[1])
+        if formatter := edge.get("formatter"):
+            assert formatter.startswith(("*[", "[", "}")) and formatter.endswith(
+                ("]", "}")
+            )
             formatter = lazyllm.formatter.JsonLike(formatter)
-        if 'constant' in edge:
-            g.add_const_edge(edge['constant'], engine._nodes[edge['oid']].name)
+        if "constant" in edge:
+            g.add_const_edge(edge["constant"], engine._nodes[edge["oid"]].name)
         else:
-            g.add_edge(engine._nodes[edge['iid']].name, engine._nodes[edge['oid']].name, formatter)
+            g.add_edge(
+                engine._nodes[edge["iid"]].name,
+                engine._nodes[edge["oid"]].name,
+                formatter,
+            )
 
-    sg = ServerGraph(g, server_resources['server'], server_resources['web'], _history_ids=_history_ids)
+    sg = ServerGraph(
+        g,
+        server_resources["server"],
+        server_resources["web"],
+        _history_ids=_history_ids,
+    )
     for kind, node in server_resources.items():
         if node:
             node.args = dict(kind=kind, graph=sg, args=node.args)
@@ -305,13 +417,13 @@ def make_graph(nodes: List[dict], edges: List[Union[List[str], dict]] = [],
     return sg
 
 
-@NodeConstructor.register('App')
+@NodeConstructor.register("App")
 def make_subapp(nodes: List[dict], edges: List[dict], resources: List[dict] = []):
     return make_graph(nodes, edges, resources)
 
 
 # Note: It will be very dangerous if provided to C-end users as a SAAS service
-@NodeConstructor.register('Code')
+@NodeConstructor.register("Code")
 def make_code(code: str, vars_for_code: Optional[Dict[str, Any]] = None):
     ori_func = compile_func(code, vars_for_code)
 
@@ -333,7 +445,7 @@ def _build_pipeline(nodes):
         return Engine().build_node(nodes[0] if isinstance(nodes, list) else nodes).func
 
 
-@NodeConstructor.register('Switch', subitems=['nodes:dict'])
+@NodeConstructor.register("Switch", subitems=["nodes:dict"])
 def make_switch(judge_on_full_input: bool, nodes: Dict[str, List[dict]]):
     with switch(judge_on_full_input=judge_on_full_input) as sw:
         for cond, nodes in nodes.items():
@@ -341,7 +453,7 @@ def make_switch(judge_on_full_input: bool, nodes: Dict[str, List[dict]]):
     return sw
 
 
-@NodeConstructor.register('Diverter', subitems=['nodes:list'])
+@NodeConstructor.register("Diverter", subitems=["nodes:list"])
 def make_diverter(nodes: List[dict]):
     return lazyllm.diverter([_build_pipeline(node) for node in nodes])
 
@@ -369,20 +481,36 @@ def make_loop(nodes: List[dict], edges: List[dict] = [], resources: List[dict] =
                         stop_condition=stop_condition, judge_on_full_input=judge_on_full_input, count=count)
 
 
-@NodeConstructor.register('Ifs', subitems=['true', 'false'])
-def make_ifs(cond: str, true: List[dict], false: List[dict], judge_on_full_input: bool = True):
-    assert judge_on_full_input, 'judge_on_full_input only support True now'
-    return lazyllm.ifs(make_code(cond), tpath=_build_pipeline(true), fpath=_build_pipeline(false))
+@NodeConstructor.register("Ifs", subitems=["true", "false"])
+def make_ifs(
+    cond: str, true: List[dict], false: List[dict], judge_on_full_input: bool = True
+):
+    assert judge_on_full_input, "judge_on_full_input only support True now"
+    return lazyllm.ifs(
+        make_code(cond), tpath=_build_pipeline(true), fpath=_build_pipeline(false)
+    )
 
 
-@NodeConstructor.register('LocalLLM')
-def make_local_llm(base_model: str, target_path: str = '', prompt: str = '', stream: bool = False,
-                   return_trace: bool = False, deploy_method: str = 'auto', url: Optional[str] = None,
-                   history: Optional[List[List[str]]] = None):
-    if history and not (isinstance(history, list) and all(len(h) == 2 and isinstance(h, list) for h in history)):
-        raise TypeError('history must be List[List[str, str]]')
+@NodeConstructor.register("LocalLLM")
+def make_local_llm(
+    base_model: str,
+    target_path: str = "",
+    prompt: str = "",
+    stream: bool = False,
+    return_trace: bool = False,
+    deploy_method: str = "auto",
+    url: Optional[str] = None,
+    history: Optional[List[List[str]]] = None,
+):
+    if history and not (
+        isinstance(history, list)
+        and all(len(h) == 2 and isinstance(h, list) for h in history)
+    ):
+        raise TypeError("history must be List[List[str, str]]")
     deploy_method = getattr(lazyllm.deploy, deploy_method)
-    m = lazyllm.TrainableModule(base_model, target_path, stream=stream, return_trace=return_trace)
+    m = lazyllm.TrainableModule(
+        base_model, target_path, stream=stream, return_trace=return_trace
+    )
     m.prompt(prompt, history=history)
     if deploy_method is lazyllm.deploy.AutoDeploy:
         m.deploy_method(deploy_method)
@@ -391,16 +519,29 @@ def make_local_llm(base_model: str, target_path: str = '', prompt: str = '', str
     return m
 
 
-@NodeConstructor.register('Intention', subitems=['nodes:dict'])
-def make_intention(base_model: str, nodes: Dict[str, List[dict]],
-                   prompt: str = '', constrain: str = '', attention: str = ''):
-    with IntentClassifier(Engine().build_node(base_model).func,
-                          prompt=prompt, constrain=constrain, attention=attention) as ic:
+@NodeConstructor.register("Intention", subitems=["nodes:dict"])
+def make_intention(
+    base_model: str,
+    nodes: Dict[str, List[dict]],
+    prompt: str = "",
+    constrain: str = "",
+    attention: str = "",
+):
+    with IntentClassifier(
+        Engine().build_node(base_model).func,
+        prompt=prompt,
+        constrain=constrain,
+        attention=attention,
+    ) as ic:
         for cond, nodes in nodes.items():
             if isinstance(nodes, list) and len(nodes) > 1:
                 f = pipeline([Engine().build_node(node).func for node in nodes])
             else:
-                f = Engine().build_node(nodes[0] if isinstance(nodes, list) else nodes).func
+                f = (
+                    Engine()
+                    .build_node(nodes[0] if isinstance(nodes, list) else nodes)
+                    .func
+                )
             ic.case[cond::f]
     return ic
 
@@ -409,24 +550,37 @@ def make_intention(base_model: str, nodes: Dict[str, List[dict]],
 def make_document(dataset_path: str, embed: Node = None, create_ui: bool = False,
                   server: bool = False, node_group: List = [], activated_groups: List[str] = []):
     document = lazyllm.tools.rag.Document(
-        dataset_path, Engine().build_node(embed).func if embed else None, server=server, manager=create_ui)
+        dataset_path,
+        Engine().build_node(embed).func if embed else None,
+        server=server,
+        manager=create_ui,
+    )
     for group in node_group:
-        if group['transform'] == 'LLMParser':
-            group['transform'] = 'llm'
-            group['llm'] = Engine().build_node(group['llm']).func
-        elif group['transform'] == 'FuncNode':
-            group['transform'] = 'function'
-            group['function'] = make_code(group['function'])
+        if group["transform"] == "LLMParser":
+            group["transform"] = "llm"
+            group["llm"] = Engine().build_node(group["llm"]).func
+        elif group["transform"] == "FuncNode":
+            group["transform"] = "function"
+            group["function"] = make_code(group["function"])
         document.create_node_group(**group)
     document.activate_groups(activated_groups + [g['name'] for g in node_group])
     return document
 
-@NodeConstructor.register('Reranker')
-def make_reranker(type: str = 'ModuleReranker', target: Optional[str] = None,
-                  output_format: Optional[str] = None, join: Union[bool, str] = False, arguments: Dict = {}):
-    if type == 'ModuleReranker' and (node := Engine().build_node(arguments['model'])):
-        arguments['model'] = node.func
-    return lazyllm.tools.Reranker(type, target=target, output_format=output_format, join=join, **arguments)
+
+@NodeConstructor.register("Reranker")
+def make_reranker(
+    type: str = "ModuleReranker",
+    target: Optional[str] = None,
+    output_format: Optional[str] = None,
+    join: Union[bool, str] = False,
+    arguments: Dict = {},
+):
+    if type == "ModuleReranker" and (node := Engine().build_node(arguments["model"])):
+        arguments["model"] = node.func
+    return lazyllm.tools.Reranker(
+        type, target=target, output_format=output_format, join=join, **arguments
+    )
+
 
 class JoinFormatter(lazyllm.components.FormatterBase):
     def __init__(self, type, *, names=None, symbol=None):
@@ -435,35 +589,48 @@ class JoinFormatter(lazyllm.components.FormatterBase):
         self.symbol = symbol
 
     def _parse_py_data_by_formatter(self, data):
-        if self.type == 'sum':
-            assert len(data) > 0, 'Cannot sum empty inputs'
-            if isinstance(data[0], str): return ''.join(data)
+        if self.type == "sum":
+            assert len(data) > 0, "Cannot sum empty inputs"
+            if isinstance(data[0], str):
+                return "".join(data)
             return sum(data, type(data[0])())
-        elif self.type == 'stack':
-            return list(data) if isinstance(data, package) else [data,]
-        elif self.type == 'to_dict':
+        elif self.type == "stack":
+            return (
+                list(data)
+                if isinstance(data, package)
+                else [
+                    data,
+                ]
+            )
+        elif self.type == "to_dict":
             assert self.names and len(self.names) == len(data)
             return {k: v for k, v in zip(self.names, data)}
-        elif self.type == 'join':
-            symbol = self.symbol or ''
+        elif self.type == "join":
+            symbol = self.symbol or ""
             return symbol.join([str(d) for d in data])
         else:
-            raise TypeError('type should be one of sum/stack/to_dict/join')
+            raise TypeError("type should be one of sum/stack/to_dict/join")
 
-@NodeConstructor.register('JoinFormatter')
-def make_join_formatter(type='sum', names=None, symbol=None):
-    if type == 'file': return make_formatter('file', rule='merge')
+
+@NodeConstructor.register("JoinFormatter")
+def make_join_formatter(type="sum", names=None, symbol=None):
+    if type == "file":
+        return make_formatter("file", rule="merge")
     return JoinFormatter(type, names=names, symbol=symbol)
 
-@NodeConstructor.register('Formatter')
+
+@NodeConstructor.register("Formatter")
 def make_formatter(ftype, rule):
     return getattr(lazyllm.formatter, ftype)(formatter=rule)
+
 
 def return_a_wrapper_func(func):
     @functools.wraps(func)
     def wrapper_func(*args, **kwargs):
         return func(*args, **kwargs)
+
     return wrapper_func
+
 
 def _get_tools(tools):
     callable_list = []
@@ -477,54 +644,86 @@ def _get_tools(tools):
         callable_list.append(wrapper_func)
     return callable_list
 
-@NodeConstructor.register('ToolsForLLM', subitems=['tools'])
+
+@NodeConstructor.register("ToolsForLLM", subitems=["tools"])
 def make_tools_for_llm(tools: List[str]):
     return lazyllm.tools.ToolManager(_get_tools(tools))
 
-@NodeConstructor.register('FunctionCall', subitems=['tools'])
+
+@NodeConstructor.register("FunctionCall", subitems=["tools"])
 def make_fc(llm: str, tools: List[str], algorithm: Optional[str] = None):
-    f = lazyllm.tools.PlanAndSolveAgent if algorithm == 'PlanAndSolve' else \
-        lazyllm.tools.ReWOOAgent if algorithm == 'ReWOO' else \
-        lazyllm.tools.ReactAgent if algorithm == 'React' else lazyllm.tools.FunctionCallAgent
+    f = (
+        lazyllm.tools.PlanAndSolveAgent
+        if algorithm == "PlanAndSolve"
+        else (
+            lazyllm.tools.ReWOOAgent
+            if algorithm == "ReWOO"
+            else (
+                lazyllm.tools.ReactAgent
+                if algorithm == "React"
+                else lazyllm.tools.FunctionCallAgent
+            )
+        )
+    )
     return f(Engine().build_node(llm).func, _get_tools(tools))
+
 
 class AuthenticationFailedError(Exception):
     def __init__(self, message="Authentication failed for the given user and tool."):
         self._message = message
         super().__init__(self._message)
 
+
 class TokenExpiredError(Exception):
     """Access token expired"""
+
     pass
+
 
 class TokenRefreshError(Exception):
     """Access key request failed"""
+
     pass
+
 
 class AuthType(Enum):
     SERVICE_API = "service_api"
     OAUTH = "oauth"
     OIDC = "oidc"
 
+
 class SharedHttpTool(lazyllm.tools.HttpTool):
-    def __init__(self,
-                 method: Optional[str] = None,
-                 url: Optional[str] = None,
-                 params: Optional[Dict[str, str]] = None,
-                 headers: Optional[Dict[str, str]] = None,
-                 body: Optional[str] = None,
-                 timeout: int = 10,
-                 proxies: Optional[Dict[str, str]] = None,
-                 code_str: Optional[str] = None,
-                 vars_for_code: Optional[Dict[str, Any]] = None,
-                 outputs: Optional[List[str]] = None,
-                 extract_from_result: Optional[bool] = None,
-                 authentication_type: Optional[str] = None,
-                 tool_api_id: Optional[str] = None,
-                 user_id: Optional[str] = None,
-                 share_key: bool = False):
-        super().__init__(method, url, params, headers, body, timeout, proxies,
-                         code_str, vars_for_code, outputs, extract_from_result)
+    def __init__(
+        self,
+        method: Optional[str] = None,
+        url: Optional[str] = None,
+        params: Optional[Dict[str, str]] = None,
+        headers: Optional[Dict[str, str]] = None,
+        body: Optional[str] = None,
+        timeout: int = 10,
+        proxies: Optional[Dict[str, str]] = None,
+        code_str: Optional[str] = None,
+        vars_for_code: Optional[Dict[str, Any]] = None,
+        outputs: Optional[List[str]] = None,
+        extract_from_result: Optional[bool] = None,
+        authentication_type: Optional[str] = None,
+        tool_api_id: Optional[str] = None,
+        user_id: Optional[str] = None,
+        share_key: bool = False,
+    ):
+        super().__init__(
+            method,
+            url,
+            params,
+            headers,
+            body,
+            timeout,
+            proxies,
+            code_str,
+            vars_for_code,
+            outputs,
+            extract_from_result,
+        )
         self._token_type = authentication_type
         self._tool_api_id = tool_api_id
         self._user_id = user_id
@@ -532,14 +731,16 @@ class SharedHttpTool(lazyllm.tools.HttpTool):
         self._key_db_connect_message = Engine().key_db_connect_message
         if self._key_db_connect_message:
             self._sql_manager = SqlManager(
-                db_type=self._key_db_connect_message['db_type'],
-                user=self._key_db_connect_message.get('user', None),
-                password=self._key_db_connect_message.get('password', None),
-                host=self._key_db_connect_message.get('host', None),
-                port=self._key_db_connect_message.get('port', None),
-                db_name=self._key_db_connect_message['db_name'],
-                options_str=self._key_db_connect_message.get('options_str', None),
-                tables_info_dict=self._key_db_connect_message.get('tables_info_dict', None),
+                db_type=self._key_db_connect_message["db_type"],
+                user=self._key_db_connect_message.get("user", None),
+                password=self._key_db_connect_message.get("password", None),
+                host=self._key_db_connect_message.get("host", None),
+                port=self._key_db_connect_message.get("port", None),
+                db_name=self._key_db_connect_message["db_name"],
+                options_str=self._key_db_connect_message.get("options_str", None),
+                tables_info_dict=self._key_db_connect_message.get(
+                    "tables_info_dict", None
+                ),
             )
         self._default_expired_days = 3
 
@@ -548,25 +749,34 @@ class SharedHttpTool(lazyllm.tools.HttpTool):
             return headers, params
         if self._token_type == AuthType.SERVICE_API.value:
             if self._location == "header":
-                headers[self._param_name] = self._token if self._token.startswith("Bearer") \
+                headers[self._param_name] = (
+                    self._token
+                    if self._token.startswith("Bearer")
                     else "Bearer " + self._token
+                )
             elif self._location == "query":
                 params = params or {}
                 params[self._param_name] = self._token
             else:
-                raise TypeError("The Service API authentication type only supports ['header', 'query'], "
-                                f"not {self._location}.")
+                raise TypeError(
+                    "The Service API authentication type only supports ['header', 'query'], "
+                    f"not {self._location}."
+                )
         elif self._token_type == AuthType.OAUTH.value:
-            headers['Authorization'] = f"Bearer {self._token}"
+            headers["Authorization"] = f"Bearer {self._token}"
         else:
-            raise TypeError("Currently, tool authentication only supports ['service_api', 'oauth'] types, "
-                            f"and does not support {self._token_type} type.")
+            raise TypeError(
+                "Currently, tool authentication only supports ['service_api', 'oauth'] types, "
+                f"and does not support {self._token_type} type."
+            )
         return headers, params
 
     def valid_key(self):
         if not self._token_type:
             return True
-        table_name = self._key_db_connect_message.get('tables_info_dict', {}).get('tables', [])[0]['name']
+        table_name = self._key_db_connect_message.get("tables_info_dict", {}).get(
+            "tables", []
+        )[0]["name"]
         SQL_SELECT = (
             f"SELECT id, tool_api_id, endpoint_url, client_id, client_secret, user_id, location, param_name, token, "
             f"refresh_token, token_type, expires_at FROM {table_name} "
@@ -575,65 +785,98 @@ class SharedHttpTool(lazyllm.tools.HttpTool):
         if self._share_key:
             ret = self._fetch_valid_key(SQL_SELECT + " AND is_share = True")
             if not ret:
-                raise AuthenticationFailedError(f"Authentication failed for share_key=True and "
-                                                f"tool_api_id='{self._tool_api_id}'")
+                raise AuthenticationFailedError(
+                    f"Authentication failed for share_key=True and "
+                    f"tool_api_id='{self._tool_api_id}'"
+                )
         else:
-            ret = self._fetch_valid_key(SQL_SELECT + f" AND user_id = '{self._user_id}'")
+            ret = self._fetch_valid_key(
+                SQL_SELECT + f" AND user_id = '{self._user_id}'"
+            )
             if not ret:
-                raise AuthenticationFailedError(f"Authentication failed for user_id='{self._user_id}' and "
-                                                f"tool_api_id='{self._tool_api_id}'")
+                raise AuthenticationFailedError(
+                    f"Authentication failed for user_id='{self._user_id}' and "
+                    f"tool_api_id='{self._tool_api_id}'"
+                )
 
         if self._token_type == AuthType.SERVICE_API.value:
-            self._token = ret['token']
-            self._location = ret['location']
-            self._param_name = ret['param_name']
+            self._token = ret["token"]
+            self._location = ret["location"]
+            self._param_name = ret["param_name"]
         elif self._token_type == AuthType.OAUTH.value:
             try:
-                expires_at = datetime.strptime(ret['expires_at'], "%Y-%m-%d %H:%M:%S")
+                expires_at = datetime.strptime(ret["expires_at"], "%Y-%m-%d %H:%M:%S")
             except ValueError:
-                expires_at = datetime.strptime(ret['expires_at'], "%Y-%m-%d %H:%M:%S.%f")
+                expires_at = datetime.strptime(
+                    ret["expires_at"], "%Y-%m-%d %H:%M:%S.%f"
+                )
             self._token = self._validate_and_refresh_token(
-                id=ret['id'],
-                client_id=ret['client_id'],
-                client_secret=ret['client_secret'],
-                endpoint_url=ret['endpoint_url'],
-                token=ret['token'],
-                refresh_token=ret['refresh_token'],
+                id=ret["id"],
+                client_id=ret["client_id"],
+                client_secret=ret["client_secret"],
+                endpoint_url=ret["endpoint_url"],
+                token=ret["token"],
+                refresh_token=ret["refresh_token"],
                 expires_at=expires_at,
-                table_name=table_name)
+                table_name=table_name,
+            )
         elif self._token_type == AuthType.OIDC.value:
             raise TypeError("OIDC authentication is not currently supported.")
         else:
-            raise TypeError("The authentication type only supports ['no authentication', 'service_api', "
-                            f"'oauth', 'oidc'], and does not support type {self._token_type}.")
+            raise TypeError(
+                "The authentication type only supports ['no authentication', 'service_api', "
+                f"'oauth', 'oidc'], and does not support type {self._token_type}."
+            )
 
     def _fetch_valid_key(self, query: str):
         ret = self._sql_manager.execute_query(query)
         ret = json.loads(ret)
         return ret[0] if ret else None
 
-    def _validate_and_refresh_token(self, id: int, client_id: str, client_secret: str, endpoint_url: str,
-                                    token: str, refresh_token: str, expires_at: datetime, table_name):
+    def _validate_and_refresh_token(
+        self,
+        id: int,
+        client_id: str,
+        client_secret: str,
+        endpoint_url: str,
+        token: str,
+        refresh_token: str,
+        expires_at: datetime,
+        table_name,
+    ):
         now = datetime.now()
         # 1、Access token has not expired
         if now < expires_at:
             if not refresh_token:
                 # Update only the expiration time
                 new_expires_at = now + timedelta(days=self._default_expired_days)
-                self._sql_manager.execute_commit(f"UPDATE {table_name} SET expires_at = "
-                                                 f"'{new_expires_at}' WHERE id = {id}")
+                self._sql_manager.execute_commit(
+                    f"UPDATE {table_name} SET expires_at = "
+                    f"'{new_expires_at}' WHERE id = {id}"
+                )
             return token
 
         # 2、Access token expired
         if not refresh_token:
-            raise TokenExpiredError("Access key has expired, and no refresh key was provided.")
+            raise TokenExpiredError(
+                "Access key has expired, and no refresh key was provided."
+            )
 
         # 3、Request a new access token with the refresh_token
-        headers = {"Content-Type": "application/json", "Authorization": f"Bearer {client_secret}"}
-        data = {"client_id": client_id, "grant_type": "refresh_token", "refresh_token": refresh_token}
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {client_secret}",
+        }
+        data = {
+            "client_id": client_id,
+            "grant_type": "refresh_token",
+            "refresh_token": refresh_token,
+        }
         with requests.post(endpoint_url, json=data, headers=headers) as r:
             if r.status_code != 200:
-                raise TokenRefreshError(f"Request failed, status code: {r.status_code}, message: {r.text}")
+                raise TokenRefreshError(
+                    f"Request failed, status code: {r.status_code}, message: {r.text}"
+                )
 
             data = r.json()
             new_token = data.get("access_token")
@@ -643,29 +886,47 @@ class SharedHttpTool(lazyllm.tools.HttpTool):
             # update db
             self._sql_manager.execute_commit(
                 f"UPDATE {table_name} SET token = '{new_token}', refresh_token = '{new_refresh_token}', "
-                f"expires_at = '{datetime.fromtimestamp(new_expires_at)}' where id = {id}")
+                f"expires_at = '{datetime.fromtimestamp(new_expires_at)}' where id = {id}"
+            )
             return new_token
 
-@NodeConstructor.register('HttpTool')
-def make_http_tool(method: Optional[str] = None,
-                   url: Optional[str] = None,
-                   params: Optional[Dict[str, str]] = None,
-                   headers: Optional[Dict[str, str]] = None,
-                   body: Optional[str] = None,
-                   timeout: int = 10,
-                   proxies: Optional[Dict[str, str]] = None,
-                   code_str: Optional[str] = None,
-                   vars_for_code: Optional[Dict[str, Any]] = None,
-                   doc: Optional[str] = None,
-                   outputs: Optional[List[str]] = None,
-                   extract_from_result: Optional[bool] = None,
-                   authentication_type: Optional[str] = None,
-                   tool_api_id: Optional[str] = None,
-                   user_id: Optional[str] = None,
-                   share_key: bool = False):
-    instance = SharedHttpTool(method, url, params, headers, body, timeout, proxies,
-                              code_str, vars_for_code, outputs, extract_from_result, authentication_type,
-                              tool_api_id, user_id, share_key)
+
+@NodeConstructor.register("HttpTool")
+def make_http_tool(
+    method: Optional[str] = None,
+    url: Optional[str] = None,
+    params: Optional[Dict[str, str]] = None,
+    headers: Optional[Dict[str, str]] = None,
+    body: Optional[str] = None,
+    timeout: int = 10,
+    proxies: Optional[Dict[str, str]] = None,
+    code_str: Optional[str] = None,
+    vars_for_code: Optional[Dict[str, Any]] = None,
+    doc: Optional[str] = None,
+    outputs: Optional[List[str]] = None,
+    extract_from_result: Optional[bool] = None,
+    authentication_type: Optional[str] = None,
+    tool_api_id: Optional[str] = None,
+    user_id: Optional[str] = None,
+    share_key: bool = False,
+):
+    instance = SharedHttpTool(
+        method,
+        url,
+        params,
+        headers,
+        body,
+        timeout,
+        proxies,
+        code_str,
+        vars_for_code,
+        outputs,
+        extract_from_result,
+        authentication_type,
+        tool_api_id,
+        user_id,
+        share_key,
+    )
     if doc:
         instance.__doc__ = doc
     return instance
@@ -709,33 +970,57 @@ def make_vqa(base_model: str, file_resource_id: Optional[str] = None, prompt: Op
     return VQA(base_model, file_resource_id, prompt)
 
 
-@NodeConstructor.register('SharedLLM')
-def make_shared_llm(llm: str, local: bool = True, prompt: Optional[str] = None, token: str = None,
-                    stream: Optional[bool] = None, file_resource_id: Optional[str] = None,
-                    history: Optional[List[List[str]]] = None):
+@NodeConstructor.register("SharedLLM")
+def make_shared_llm(
+    llm: str,
+    local: bool = True,
+    prompt: Optional[str] = None,
+    token: str = None,
+    stream: Optional[bool] = None,
+    file_resource_id: Optional[str] = None,
+    history: Optional[List[List[str]]] = None,
+):
     if local:
         llm = Engine().build_node(llm).func
-        if file_resource_id: assert isinstance(llm, VQA), 'file_resource_id is only supported in VQA'
-        r = (VQA(llm._vqa.share(prompt=prompt, history=history), file_resource_id)
-             if file_resource_id else llm.share(prompt=prompt, history=history))
+        if file_resource_id:
+            assert isinstance(llm, VQA), "file_resource_id is only supported in VQA"
+        r = (
+            VQA(llm._vqa.share(prompt=prompt, history=history), file_resource_id)
+            if file_resource_id
+            else llm.share(prompt=prompt, history=history)
+        )
     else:
-        assert Engine().launch_localllm_infer_service.flag, 'Infer service should start first!'
+        assert (
+            Engine().launch_localllm_infer_service.flag
+        ), "Infer service should start first!"
         r = Engine().get_infra_handle(token, llm)
-        if prompt: r.prompt(prompt, history=history)
-    if stream is not None: r.stream = stream
+        if prompt:
+            r.prompt(prompt, history=history)
+    if stream is not None:
+        r.stream = stream
     return r
 
 
-@NodeConstructor.register('OnlineLLM')
-def make_online_llm(source: str, base_model: Optional[str] = None, prompt: Optional[str] = None,
-                    api_key: Optional[str] = None, secret_key: Optional[str] = None,
-                    stream: bool = False, token: Optional[str] = None, base_url: Optional[str] = None,
-                    history: Optional[List[List[str]]] = None):
-    if source and source.lower() == 'lazyllm':
-        return make_shared_llm(base_model, False, prompt, token, stream, history=history)
+@NodeConstructor.register("OnlineLLM")
+def make_online_llm(
+    source: str,
+    base_model: Optional[str] = None,
+    prompt: Optional[str] = None,
+    api_key: Optional[str] = None,
+    secret_key: Optional[str] = None,
+    stream: bool = False,
+    token: Optional[str] = None,
+    base_url: Optional[str] = None,
+    history: Optional[List[List[str]]] = None,
+):
+    if source and source.lower() == "lazyllm":
+        return make_shared_llm(
+            base_model, False, prompt, token, stream, history=history
+        )
     else:
-        return lazyllm.OnlineChatModule(base_model, source, base_url, stream,
-                                        api_key=api_key, secret_key=secret_key).prompt(prompt, history=history)
+        return lazyllm.OnlineChatModule(
+            base_model, source, base_url, stream, api_key=api_key, secret_key=secret_key
+        ).prompt(prompt, history=history)
 
 
 class LLM(lazyllm.ModuleBase):
@@ -768,17 +1053,21 @@ def make_llm(kw: dict):
 class STT(lazyllm.Module):
     def __init__(self, base_model: Union[str, lazyllm.TrainableModule]):
         super().__init__()
-        self._m = lazyllm.TrainableModule(base_model) if isinstance(base_model, str) else base_model.share()
+        self._m = (
+            lazyllm.TrainableModule(base_model)
+            if isinstance(base_model, str)
+            else base_model.share()
+        )
 
     def forward(self, query: str):
-        if '<lazyllm-query>' in query:
-            for ext in ['.mp3', '.wav', '.flac', '.aac', '.ogg', '.m4a', '.wma']:
+        if "<lazyllm-query>" in query:
+            for ext in [".mp3", ".wav", ".flac", ".aac", ".ogg", ".m4a", ".wma"]:
                 if ext in query or ext.upper() in query:
                     return self._m(query)
         return query
 
     def share(self, prompt: str = None):
-        assert prompt is None, 'STT has no promot'
+        assert prompt is None, "STT has no promot"
         return STT(self._m)
 
     def status(self, task_name: Optional[str] = None):
@@ -793,14 +1082,14 @@ class STT(lazyllm.Module):
         self._m._stream = v
 
 
-@NodeConstructor.register('STT')
+@NodeConstructor.register("STT")
 def make_stt(base_model: str):
     return STT(base_model)
 
 
-@NodeConstructor.register('Constant')
+@NodeConstructor.register("Constant")
 def make_constant(value: Any):
-    return (lambda *args, **kw: value)
+    return lambda *args, **kw: value
 
 
 class FileResource(object):
@@ -808,10 +1097,10 @@ class FileResource(object):
         self.id = id
 
     def __call__(self, *args, **kw) -> Union[str, List[str]]:
-        return lazyllm.globals['lazyllm_files'].get(self.id)
+        return lazyllm.globals["lazyllm_files"].get(self.id)
 
 
-@NodeConstructor.register('File')
+@NodeConstructor.register("File")
 def make_file(id: str):
     return FileResource(id)
 
@@ -835,3 +1124,21 @@ def make_qustion_rewrite(
     formatter: str = "",
 ):
     return lazyllm.tools.QustionRewrite(base_model, rewrite_prompt, formatter)
+@NodeConstructor.register("Reader")
+def make_simple_reader():
+    return lazyllm.tools.rag.FileReader()
+
+
+@NodeConstructor.register("OCR")
+def make_ocr(
+    model: Optional[str] = "PP-OCRv5_server",
+    use_doc_orientation_classify: Optional[bool] = False,
+    use_doc_unwarping: Optional[bool] = False,
+    use_textline_orientation: Optional[bool] = False,
+):
+    return lazyllm.components.ocr.pp_ocr.OCR(
+        model=model,
+        use_doc_orientation_classify=use_doc_orientation_classify,
+        use_doc_unwarping=use_doc_unwarping,
+        use_textline_orientation=use_textline_orientation,
+    )

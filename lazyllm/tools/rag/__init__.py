@@ -12,7 +12,7 @@ from .global_metadata import GlobalMetadataDesc as DocField
 from .data_type import DataType
 from .index_base import IndexBase
 from .store_base import StoreBase
-
+from .component import FileReader
 
 __all__ = [
     "Document",
@@ -45,4 +45,5 @@ __all__ = [
     'DataType',
     'IndexBase',
     'StoreBase',
+    "FileReader",
 ]

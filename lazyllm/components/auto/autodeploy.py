@@ -9,8 +9,8 @@ from lazyllm.components.embedding.embed import EmbeddingDeploy
 from lazyllm.components.stable_diffusion.stable_diffusion3 import StableDiffusionDeploy
 from lazyllm.components.speech_to_text.sense_voice import SenseVoiceDeploy
 from lazyllm.components.text_to_speech.base import TTSDeploy
+from lazyllm.components.ocr.pp_ocr import OCRDeploy
 from ..utils.downloader import ModelManager
-
 class AutoDeploy(LazyLLMDeployBase):
     message_format = {}
     keys_name_handle = None
@@ -18,10 +18,15 @@ class AutoDeploy(LazyLLMDeployBase):
 
     def __new__(cls, base_model, source=lazyllm.config['model_source'], trust_remote_code=True, max_token_num=1024,
                 launcher=launchers.remote(ngpus=1), stream=False, type=None, log_path=None, **kw):
-        base_model = ModelManager(source).download(base_model) or ''
-        model_name = get_model_name(base_model)
         if not type:
-            type = ModelManager.get_model_type(model_name)
+            type = ModelManager.get_model_type(base_model)
+
+        if type == "ocr":
+            model_name = base_model.lower()
+        else:
+            base_model = ModelManager(source).download(base_model) or ''
+            model_name = get_model_name(base_model)
+
         if type in ('embed', 'cross_modal_embed', 'reranker'):
             if lazyllm.config['default_embedding_engine'] == 'transformers' or lazyllm.config['default_embedding_engine'] == 'flagEmbedding' \
                 or kw.get('embed_type')=='sparse' or not check_requirements('infinity_emb'):
@@ -36,6 +41,8 @@ class AutoDeploy(LazyLLMDeployBase):
             return TTSDeploy(model_name, log_path=log_path, launcher=launcher)
         elif type == 'vlm':
             return deploy.LMDeploy(launcher, stream=stream, log_path=log_path, **kw)
+        elif type == 'ocr':
+            return OCRDeploy(launcher, log_path=log_path)
         map_name = model_map(model_name)
         candidates = get_configer().query_deploy(lazyllm.config['gpu_type'], launcher.ngpus,
                                                  map_name, max_token_num)

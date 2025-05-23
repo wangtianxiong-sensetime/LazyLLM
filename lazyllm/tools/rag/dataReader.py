@@ -10,7 +10,7 @@ from tqdm import tqdm
 from datetime import datetime
 from functools import reduce
 from itertools import repeat
-from typing import Dict, Optional, List, Callable, Type
+from typing import Dict, Optional, List, Callable, Type, Union
 from pathlib import Path, PurePosixPath, PurePath
 from fsspec import AbstractFileSystem
 from lazyllm import ModuleBase, LOG, config
@@ -263,3 +263,15 @@ class SimpleDirectoryReader(ModuleBase):
 
 
 config.add('rag_filename_as_id', bool, False, 'RAG_FILENAME_AS_ID')
+class FileReader(object):
+
+    def __call__(self, input_files: Union[str, list[str]]):
+        if len(input_files) == 0:
+            return []
+        if isinstance(input_files, str):
+            input_files = [input_files]
+        nodes = SimpleDirectoryReader(input_files=input_files)._load_data()
+        txt = [node.get_text() for node in nodes]
+        if self.output == "list":
+            return txt
+        return "\n".join(txt)

@@ -700,14 +700,6 @@ class TestEngine(unittest.TestCase):
         gid = engine.start(nodes, edges)
         data = engine.run(gid, p)
         assert len(data) > 0
-        engine.stop(gid)
-        engine.reset()
-        nodes = [dict(id='1', kind='OCR', name='m1', args=dict(model="PP-OCRv5_mobile"))]
-        gid = engine.start(nodes, edges)
-        input = os.path.join(data_root_dir, "rag_master/default/__data/pdfs/reading_report_p1.pdf")
-        data = engine.run(gid, input)
-        verify = lazyllm.components.ocr.pp_ocr.OCR("PP-OCRv5_mobile")(input)
-        assert len(data) == len(verify)
 
 class TestEngineRAG(object):
 

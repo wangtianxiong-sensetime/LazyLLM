@@ -1123,6 +1123,7 @@ def make_qustion_rewrite(
     formatter: str = "str",
 ):
     return lazyllm.tools.QustionRewrite(base_model, rewrite_prompt, formatter)
+
 @NodeConstructor.register("Reader")
 def make_simple_reader():
     return lazyllm.tools.rag.FileReader()

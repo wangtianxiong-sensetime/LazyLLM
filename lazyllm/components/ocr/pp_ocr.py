@@ -77,7 +77,7 @@ class OCRDeploy(object):
     default_headers = {"Content-Type": "application/json"}
 
     def __init__(self, launcher=None, log_path=None):
-        self.launcher = launcher
+        self._launcher = launcher
         self._log_path = log_path
 
     def __call__(self, finetuned_model=None, base_model=None):
@@ -85,7 +85,7 @@ class OCRDeploy(object):
             finetuned_model = base_model
         return lazyllm.deploy.RelayServer(
             func=OCR(finetuned_model),
-            launcher=self.launcher,
+            launcher=self._launcher,
             log_path=self._log_path,
             cls="ocr",
         )()

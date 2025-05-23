@@ -169,10 +169,14 @@ class Job(object):
                 try:
                     line = line.decode('utf-8')
                 except Exception:
-                    pass
-                queue.put(line)
-                if hooks:
-                    hooks(line) if callable(hooks) else [hook(line) for hook in hooks]
+                    try:
+                        line = line.decode('gb2312')
+                    except Exception:
+                        pass
+                if isinstance(line, str):
+                    queue.put(line)
+                    if hooks:
+                        hooks(line) if callable(hooks) else [hook(line) for hook in hooks]
                 LOG.info(f'{self.jobid}: {line.rstrip()}', )
                 if self.output_thread_event.is_set():
                     break

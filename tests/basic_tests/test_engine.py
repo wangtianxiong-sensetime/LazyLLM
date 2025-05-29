@@ -691,7 +691,7 @@ class TestEngine(unittest.TestCase):
         engine.release_node(gid)
         assert '__start__' in engine._nodes and '__end__' in engine._nodes
 
-    def test_engine_pdf_reader(self):
+    def test_engine_reader(self):
         nodes = [dict(id='1', kind='Reader', name='m1', args=dict())]
         edges = [dict(iid='__start__', oid='1'), dict(iid='1', oid='__end__')]
         data_root_dir = os.getenv("LAZYLLM_DATA_PATH")

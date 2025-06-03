@@ -1,6 +1,6 @@
 from typing import Union
 import json
-from ...module import ModuleBase, TrainableModule
+from ...module import ModuleBase, TrainableModule, OnlineChatModuleBase
 
 
 ch_parameter_extractor_prompt = """
@@ -19,24 +19,24 @@ __is_success字段解释：表示是否成功，成功时值为 1，失败时值
 """
 
 en_parameter_extractor_prompt = """
-You are an intelligent assistant. Your task is to extract parameters from the user’s input 
+You are an intelligent assistant. Your task is to extract parameters from the user’s input
 and convert them into JSON.
 You need to extract the following parameters from the text and generate JSON
 Each parameter has a name, type, description, and a "require" flag.
 '''{prompt}'''
 ## Extraction requirements
-1. Extract the specified parameters from the user’s input and convert them into JSON. 
-   The JSON keys should be the parameter names, and the values should be the extracted values. 
+1. Extract the specified parameters from the user’s input and convert them into JSON.
+   The JSON keys should be the parameter names, and the values should be the extracted values.
    Ensure the JSON is valid and includes all parameters.
-2. If a parameter is not mentioned in the input, set its value to null. 
-   If a parameter is marked as "require": true but is not found, set "__is_success" to 0 
+2. If a parameter is not mentioned in the input, set its value to null.
+   If a parameter is marked as "require": true but is not found, set "__is_success" to 0
    and "__reason" to the failure description.
    - __is_success: indicates whether extraction succeeded (1) or failed (0).
 3. For the provided parameter description:
    [{{"name": "year", "type": "int", "description": "Year", "require": true}}]
    you should return results in this format:
    {{"year": 2023, "__is_success": 1, "__reason": "Extraction successful"}}
-4. Output only the JSON string—no other content. 
+4. Output only the JSON string—no other content.
    Use double quotes for JSON keys and English colons.
 5. Use the user’s input and the parameter descriptions to extract as many parameters as possible.
 """
@@ -51,7 +51,7 @@ class ParameterExtractor(ModuleBase):
 
     def __init__(
         self,
-        base_model: Union[str, TrainableModule],
+        base_model: Union[str, TrainableModule, OnlineChatModuleBase],
         param: list[str],
         type: list[str],
         description: list[str],
@@ -64,7 +64,7 @@ class ParameterExtractor(ModuleBase):
         assert len(param) == len(require)
         self._param_dict = dict()
         param_prompt = []
-        for i in range(0,len(param)):
+        for i in range(0, len(param)):
             t = {}
             t["name"] = param[i]
             t["type"] = type[i]
@@ -75,7 +75,7 @@ class ParameterExtractor(ModuleBase):
             if require[i]:
                 self._param_dict[param[i]] = ParameterExtractor.type_map[type[i]]
         param_prompt = repr(param_prompt)
-        self._prompt = self.choose_prompt(param_prompt).format(prompt = param_prompt)
+        self._prompt = self.choose_prompt(param_prompt).format(prompt=param_prompt)
         if isinstance(base_model, str):
             self._m = TrainableModule(base_model).start().prompt(self._prompt)
         else:

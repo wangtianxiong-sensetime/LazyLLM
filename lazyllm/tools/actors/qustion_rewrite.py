@@ -1,10 +1,10 @@
 from typing import Union
-from ...module import ModuleBase, TrainableModule
+from ...module import ModuleBase, TrainableModule, OnlineChatModuleBase
 
 en_qustion_rewrite_prompt = """
 ## Task
-You are a professional RAG retrieval assistant tasked with rewriting user questions 
-to make them clearer and more understandable, facilitating subsequent RAG data retrieval. 
+You are a professional RAG retrieval assistant tasked with rewriting user questions
+to make them clearer and more understandable, facilitating subsequent RAG data retrieval.
 Please rewrite the user's input question according to the following guidelines.
 
 ## Rewrite Instructions
@@ -13,7 +13,8 @@ Follow these principles when rewriting the above question:
 2. Clarify intent: ensure the core purpose of the question is clearly expressed.
 3. Add details: if the original question lacks key information, supply necessary context or constraints.
 4. Shift perspective: try posing the same question from different angles to spark new thinking paths.
-5. Break into steps: when applicable, decompose a question into smaller sub-questions for easier comprehension and answering.
+5. Break into steps: when applicable, decompose a question into smaller sub-questions for
+easier comprehension and answering.
 
 User Require
 '''{prompt}'''
@@ -42,12 +43,12 @@ ch_qustion_rewrite_prompt = """
 class QustionRewrite(ModuleBase):
     def __init__(
         self,
-        base_model: Union[str, TrainableModule],
+        base_model: Union[str, TrainableModule, OnlineChatModuleBase],
         rewrite_prompt: str = "",
         formatter: str = "str",
     ):
         super().__init__()
-        self._prompt = self.choose_prompt(rewrite_prompt).format(prompt = rewrite_prompt)
+        self._prompt = self.choose_prompt(rewrite_prompt).format(prompt=rewrite_prompt)
         if isinstance(base_model, str):
             self._m = TrainableModule(base_model).start().prompt(self._prompt)
         else:

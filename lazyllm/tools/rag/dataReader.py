@@ -10,7 +10,7 @@ from tqdm import tqdm
 from datetime import datetime
 from functools import reduce
 from itertools import repeat
-from typing import Dict, Optional, List, Callable, Type, Union
+from typing import Dict, Optional, List, Callable, Type
 from pathlib import Path, PurePosixPath, PurePath
 from fsspec import AbstractFileSystem
 from lazyllm import ModuleBase, LOG, config

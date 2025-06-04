@@ -11,14 +11,6 @@ def is_all_punctuation(s: str) -> bool:
 
 
 class OCR(object):
-    keys_name_handle = {
-        "inputs": "input",
-    }
-    message_format = {
-        "input": "path/to/img_or_pdf",
-    }
-    default_headers = {"Content-Type": "application/json"}
-
     def __init__(
         self,
         model: Optional[str] = "PP-OCRv5_server",
@@ -45,9 +37,15 @@ class OCR(object):
         )
 
     def __call__(self, input):
-        file_list = lazyllm.components.formatter.formatterbase._lazyllm_get_file_list(input)
+        if isinstance(input, dict):
+            if 'inputs' in input:
+                file_list = input["inputs"]
+        else:
+            file_list = lazyllm.components.formatter.formatterbase._lazyllm_get_file_list(input)
         if isinstance(file_list, str):
             file_list = [file_list]
+        if hasattr(file_list, '__repr__'):
+            print(f"paddleocr read files:{file_list}")
         txt = []
         for file in file_list:
             result = self.ocr.predict(file)

@@ -93,8 +93,8 @@ class ModelManager():
 
     def download(self, model='', call_back=None):
         assert isinstance(model, str), "model name should be a string."
-        if model in model_name_mapping.keys() and 'download_by_other' in model_name_mapping[model]:
-            if model_name_mapping[model]['download_by_other'] is True:
+        if model.lower() in model_name_mapping.keys() and 'download_by_other' in model_name_mapping[model.lower()]:
+            if model_name_mapping[model.lower()]['download_by_other'] is True:
                 return model
         self._try_add_mapping(model)
         # Dummy or local model.

@@ -1132,15 +1132,8 @@ def make_simple_reader():
 
 
 @NodeConstructor.register("OCR")
-def make_ocr(
-    model: Optional[str] = "PP-OCRv5_server",
-    use_doc_orientation_classify: Optional[bool] = False,
-    use_doc_unwarping: Optional[bool] = False,
-    use_textline_orientation: Optional[bool] = False,
-):
-    return lazyllm.components.ocr.pp_ocr.OCR(
-        model=model,
-        use_doc_orientation_classify=use_doc_orientation_classify,
-        use_doc_unwarping=use_doc_unwarping,
-        use_textline_orientation=use_textline_orientation,
-    )
+def make_ocr(model: Optional[str] = "PP-OCRv5_server"):
+    if model is None:
+        model = "PP-OCRv5_mobile"
+    assert model in ["PP-OCRv5_server", "PP-OCRv5_mobile"]
+    return lazyllm.TrainableModule(base_model=model).start()

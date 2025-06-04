@@ -77,6 +77,7 @@ class OCR(object):
 class OCRDeploy(object):
     keys_name_handle = {
         "inputs": "inputs",
+        "ocr_files": "inputs",
     }
     message_format = {"inputs": "/path/to/pdf"}
     default_headers = {"Content-Type": "application/json"}

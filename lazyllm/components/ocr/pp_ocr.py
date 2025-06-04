@@ -1,4 +1,4 @@
-from lazyllm.thirdparty import paddleocr
+
 import lazyllm
 from typing import Optional
 import string
@@ -28,6 +28,10 @@ class OCR(object):
         self.use_doc_orientation_classify = use_doc_orientation_classify
         self.use_doc_unwarping = use_doc_unwarping
         self.use_textline_orientation = use_textline_orientation
+        self.init_flag = lazyllm.once_flag()
+
+    def load_paddleocr(self):
+        from lazyllm.thirdparty import paddleocr
         self.ocr = paddleocr.PaddleOCR(
             text_detection_model_name=self.text_detection_model_name,
             text_recognition_model_name=self.text_recognition_model_name,
@@ -37,6 +41,7 @@ class OCR(object):
         )
 
     def __call__(self, input):
+        lazyllm.call_once(self.init_flag, self.load_paddleocr)
         if isinstance(input, dict):
             if 'inputs' in input:
                 file_list = input["inputs"]

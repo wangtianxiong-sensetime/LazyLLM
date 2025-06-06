@@ -1136,3 +1136,11 @@ def make_ocr(model: Optional[str] = "PP-OCRv5_server"):
         model = "PP-OCRv5_mobile"
     assert model in ["PP-OCRv5_server", "PP-OCRv5_mobile"]
     return lazyllm.TrainableModule(base_model=model).start()
+
+@NodeConstructor.register("CodeGenerator")
+def make_code_generator(
+    base_model: str,
+    prompt: str = "",
+):
+    base_model = Engine().build_node(base_model).func
+    return lazyllm.tools.CodeGenerator(base_model, prompt)

@@ -899,19 +899,6 @@ def make_file(id: str):
     return FileResource(id)
 
 
-@NodeConstructor.register("ParameterExtractor")
-def make_parameter_extractor(base_model: str, param: list[str], type: list[str],
-                             description: list[str], require: list[bool]):
-    base_model = Engine().build_node(base_model).func
-    return lazyllm.tools.ParameterExtractor(base_model, param, type, description, require)
-
-
-@NodeConstructor.register("QustionRewrite")
-def make_qustion_rewrite(base_model: str, rewrite_prompt: str = "", formatter: str = "str"):
-    base_model = Engine().build_node(base_model).func
-    return lazyllm.tools.QustionRewrite(base_model, rewrite_prompt, formatter)
-
-
 @NodeConstructor.register("Reader")
 def make_simple_reader(file_resource_id: Optional[str] = None):
     if file_resource_id:
@@ -920,8 +907,11 @@ def make_simple_reader(file_resource_id: Optional[str] = None):
                 input = input[0]
             input = _lazyllm_get_file_list(input)
             input = [input] if isinstance(input, str) else input
-            extra = [extra_file] if isinstance(extra_file, str) else extra_file
-            return input + extra
+            if extra_file is not None:
+                extra = [extra_file] if isinstance(extra_file, str) else extra_file
+                return input + extra
+            else:
+                return input
         with pipeline() as ppl:
             ppl.extra_file = Engine().build_node(file_resource_id).func
             ppl.merge = lazyllm.bind(merge_input, ppl.input, lazyllm._0)
@@ -937,6 +927,19 @@ def make_ocr(model: Optional[str] = "PP-OCRv5_mobile"):
         model = "PP-OCRv5_mobile"
     assert model in ["PP-OCRv5_server", "PP-OCRv5_mobile", "PP-OCRv4_server", "PP-OCRv4_mobile"]
     return lazyllm.TrainableModule(base_model=model).start()
+
+
+@NodeConstructor.register("ParameterExtractor")
+def make_parameter_extractor(base_model: str, param: list[str], type: list[str],
+                             description: list[str], require: list[bool]):
+    base_model = Engine().build_node(base_model).func
+    return lazyllm.tools.ParameterExtractor(base_model, param, type, description, require)
+
+
+@NodeConstructor.register("QustionRewrite")
+def make_qustion_rewrite(base_model: str, rewrite_prompt: str = "", formatter: str = "str"):
+    base_model = Engine().build_node(base_model).func
+    return lazyllm.tools.QustionRewrite(base_model, rewrite_prompt, formatter)
 
 
 @NodeConstructor.register("CodeGenerator")

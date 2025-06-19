@@ -40,7 +40,6 @@ class AutoDeploy(LazyLLMDeployBase):
             return deploy.LMDeploy((launcher or launchers.remote(ngpus=1)), log_path=log_path, **kw)
         elif type == 'ocr':
             return OCRDeploy(launcher, log_path=log_path)
-
         map_name, size = model_map(model_name)
         if not launcher:
             size = (size * 2) if 'awq' not in model_name.lower() else (size / 1.5)

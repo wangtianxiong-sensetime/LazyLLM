@@ -776,6 +776,15 @@ class LLM(lazyllm.ModuleBase):
     def share(self, prompt: str, history: Optional[List[List[str]]] = None):
         return LLM(self._m.share(prompt=prompt, history=history), self._keys)
 
+    def formatter(self, format: lazyllm.components.formatter.FormatterBase = None):
+        if isinstance(format, lazyllm.components.formatter.FormatterBase) or callable(format):
+            self._formatter = format
+        elif format is None:
+            self._formatter = lazyllm.components.formatter.EmptyFormatter()
+        else:
+            raise TypeError("format must be a FormatterBase")
+        return self
+
 
 @NodeConstructor.register('LLM')
 def make_llm(kw: dict):
@@ -878,14 +887,6 @@ def make_sql_manager(db_type: str = None, user: str = None, password: str = None
                      port: str = None, db_name: str = None, options_str: str = "", tables_info_dict: dict = None):
     return lazyllm.tools.SqlManager(db_type=db_type, user=user, password=password, host=host, port=port,
                                     db_name=db_name, options_str=options_str, tables_info_dict=tables_info_dict)
-
-@NodeConstructor.register('Retriever')
-def make_retriever(doc: Node, group_name: str, similarity: str = "cosine", similarity_cut_off: float = float("-inf"),
-                   index: str = "default", topk: int = 6, embed_keys: list[str] = None, target: str = None,
-                   output_format: str = None, join: bool = False):
-    return lazyllm.tools.rag.Retriever(doc=doc, group_name=group_name, similarity=similarity,
-                                       similarity_cut_off=similarity_cut_off, index=index, topk=topk,
-                                       embed_keys=embed_keys, target=target, output_format=output_format, join=join)
 
 @NodeConstructor.register('HTTP')
 def make_http(method: str, url: str, api_key: str = '', headers: dict = {}, params: dict = {}, body: str = ''):

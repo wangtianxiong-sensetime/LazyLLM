@@ -1,7 +1,8 @@
+import os
 from typing import List, Dict, Type, Optional, Union, Any, overload
 import lazyllm
 from lazyllm import graph, switch, pipeline, package
-from lazyllm.components.utils.file_operate import base64_to_audio
+from lazyllm.components.utils.file_operate import base64_to_file
 from lazyllm.tools import IntentClassifier, SqlManager
 from lazyllm.tools.http_request.http_request import HttpRequest
 from lazyllm.common import compile_func
@@ -810,14 +811,18 @@ def make_local_stt(base_model: str, deploy_method: str = "auto", url: Optional[s
     return STT(model)
 
 class TTS(lazyllm.Module):
-    def __init__(self, model: lazyllm.TrainableModule):
+    def __init__(self, model: lazyllm.TrainableModule, target_dir: str = ''):
         super().__init__()
         self._m = model
+        if target_dir:
+            target_dir = os.path.abspath(target_dir)
+            os.makedirs(target_dir, exist_ok=True)
+        self._target_dir = target_dir
 
     def forward(self, query: str):
         r = self._m(query)
         result = decode_query_with_filepaths(r)
-        sound_list = [base64_to_audio(sound) for sound in result["files"] if sound.startswith("data:")]
+        sound_list = [base64_to_file(sound, target_dir=self._target_dir) for sound in result["files"] if sound.startswith("data:")]
         return sound_list
 
 @NodeConstructor.register('TTS')

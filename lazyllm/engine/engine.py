@@ -1,5 +1,5 @@
 import os
-from typing import List, Dict, Type, Optional, Union, Any, overload
+from typing import List, Tuple, Dict, Type, Optional, Union, Any, overload
 import lazyllm
 from lazyllm import graph, switch, pipeline, package
 from lazyllm.components.utils.file_operate import base64_to_file

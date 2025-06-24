@@ -142,12 +142,13 @@ class NodeConstructor(object):
     builder_methods = dict()
 
     @classmethod
-    def register(cls, *names: Union[List[str], str], subitems: Optional[Union[str, List[str]]] = None):
+    def register(cls, *names: Union[List[str], str], subitems: Optional[Union[str, List[str]]] = None,
+                 need_id: bool = False):
         if len(names) == 1 and isinstance(names[0], (tuple, list)): names = names[0]
 
         def impl(f):
             for name in names:
-                cls.builder_methods[name] = (f, subitems)
+                cls.builder_methods[name] = (f, subitems, need_id)
             return f
         return impl
 
@@ -160,9 +161,10 @@ class NodeConstructor(object):
         node.enable_data_reflow = (node_args.pop('_lazyllm_enable_report', False)
                                    if isinstance(node_args, dict) else False)
         if node.kind in NodeConstructor.builder_methods:
-            createf, node.subitem_name = NodeConstructor.builder_methods[node.kind]
-            node.func = createf(**node_args) if isinstance(node_args, dict) and set(node_args.keys()).issubset(
-                set(inspect.getfullargspec(createf).args)) else createf(node_args)
+            createf, node.subitem_name, need_id = NodeConstructor.builder_methods[node.kind]
+            kw = {'_node_id': node.id} if need_id else {}
+            node.func = createf(**node_args, **kw) if isinstance(node_args, dict) and set(node_args.keys()).issubset(
+                set(inspect.getfullargspec(createf).args)) else createf(node_args, **kw)
             self._process_hook(node, node.func)
             return node
         else:
@@ -382,11 +384,15 @@ def make_intention(base_model: str, nodes: Dict[str, List[dict]],
     return ic
 
 
-@NodeConstructor.register('Document')
-def make_document(dataset_path: str, embed: Node = None, create_ui: bool = False,
-                  server: bool = False, node_group: List = [], activated_groups: List[str] = []):
-    document = lazyllm.tools.rag.Document(
-        dataset_path, Engine().build_node(embed).func if embed else None, server=server, manager=create_ui)
+@NodeConstructor.register('Document', need_id=True)
+def make_document(dataset_path: str, _node_id: str, embed: Node = None, create_ui: bool = False, server: bool = False,
+                  node_group: List[Dict] = [], activated_groups: List[Tuple[str, Optional[List[Node]]]] = []):
+    groups = [[g, None] if isinstance(g, str) else g for g in activated_groups]
+    groups += [[g['name'], g.pop('embed', None)] for g in node_group]
+    groups = [[g, e] if (not e or isinstance(e, list)) else [g, [e]] for g, e in groups]
+    embed = {e: Engine().build_node(e).func for e in set(sum([g[1] for g in groups if g[1]], []))}
+    document = lazyllm.tools.rag.Document(dataset_path, embed or None, server=server, manager=create_ui, name=_node_id)
+
     for group in node_group:
         if group['transform'] == 'LLMParser':
             group['transform'] = 'llm'
@@ -395,8 +401,19 @@ def make_document(dataset_path: str, embed: Node = None, create_ui: bool = False
             group['transform'] = 'function'
             group['function'] = make_code(group['function'])
         document.create_node_group(**group)
-    document.activate_groups(activated_groups + [g['name'] for g in node_group])
+
+    [document.activate_group(g, e) for g, e in groups]
     return document
+
+
+@NodeConstructor.register('Retriever')
+def make_retriever(doc: str, group_name: str, similarity: str = 'cosine', similarity_cut_off: float = float("-inf"),
+                   index: str = 'default', topk: int = 6, target: str = None, output_format: str = None,
+                   join: bool = False):
+    return lazyllm.tools.Retriever(Engine().build_node(doc).func, group_name=group_name, similarity=similarity,
+                                   similarity_cut_off=similarity_cut_off, index=index, topk=topk, embed_keys=[],
+                                   target=target, output_format=output_format, join=join)
+
 
 @NodeConstructor.register('Reranker')
 def make_reranker(type: str = 'ModuleReranker', target: Optional[str] = None,
@@ -760,6 +777,15 @@ class LLM(lazyllm.ModuleBase):
     def share(self, prompt: str, history: Optional[List[List[str]]] = None):
         return LLM(self._m.share(prompt=prompt, history=history), self._keys)
 
+    def formatter(self, format: lazyllm.components.formatter.FormatterBase = None):
+        if isinstance(format, lazyllm.components.formatter.FormatterBase) or callable(format):
+            self._formatter = format
+        elif format is None:
+            self._formatter = lazyllm.components.formatter.EmptyFormatter()
+        else:
+            raise TypeError("format must be a FormatterBase")
+        return self
+
 
 @NodeConstructor.register('LLM')
 def make_llm(kw: dict):
@@ -868,14 +894,6 @@ def make_sql_manager(db_type: str = None, user: str = None, password: str = None
     return lazyllm.tools.SqlManager(db_type=db_type, user=user, password=password, host=host, port=port,
                                     db_name=db_name, options_str=options_str, tables_info_dict=tables_info_dict)
 
-@NodeConstructor.register('Retriever')
-def make_retriever(doc: Node, group_name: str, similarity: str = "cosine", similarity_cut_off: float = float("-inf"),
-                   index: str = "default", topk: int = 6, embed_keys: list[str] = None, target: str = None,
-                   output_format: str = None, join: bool = False):
-    return lazyllm.tools.rag.Retriever(doc=doc, group_name=group_name, similarity=similarity,
-                                       similarity_cut_off=similarity_cut_off, index=index, topk=topk,
-                                       embed_keys=embed_keys, target=target, output_format=output_format, join=join)
-
 @NodeConstructor.register('HTTP')
 def make_http(method: str, url: str, api_key: str = '', headers: dict = {}, params: dict = {}, body: str = ''):
     return HttpRequest(method=method, url=url, api_key=api_key, headers=headers, params=params, body=body)
@@ -905,19 +923,6 @@ def make_file(id: str):
     return FileResource(id)
 
 
-@NodeConstructor.register("ParameterExtractor")
-def make_parameter_extractor(base_model: str, param: list[str], type: list[str],
-                             description: list[str], require: list[bool]):
-    base_model = Engine().build_node(base_model).func
-    return lazyllm.tools.ParameterExtractor(base_model, param, type, description, require)
-
-
-@NodeConstructor.register("QustionRewrite")
-def make_qustion_rewrite(base_model: str, rewrite_prompt: str = "", formatter: str = "str"):
-    base_model = Engine().build_node(base_model).func
-    return lazyllm.tools.QustionRewrite(base_model, rewrite_prompt, formatter)
-
-
 @NodeConstructor.register("Reader")
 def make_simple_reader(file_resource_id: Optional[str] = None):
     if file_resource_id:
@@ -926,8 +931,11 @@ def make_simple_reader(file_resource_id: Optional[str] = None):
                 input = input[0]
             input = _lazyllm_get_file_list(input)
             input = [input] if isinstance(input, str) else input
-            extra = [extra_file] if isinstance(extra_file, str) else extra_file
-            return input + extra
+            if extra_file is not None:
+                extra = [extra_file] if isinstance(extra_file, str) else extra_file
+                return input + extra
+            else:
+                return input
         with pipeline() as ppl:
             ppl.extra_file = Engine().build_node(file_resource_id).func
             ppl.merge = lazyllm.bind(merge_input, ppl.input, lazyllm._0)
@@ -943,6 +951,19 @@ def make_ocr(model: Optional[str] = "PP-OCRv5_mobile"):
         model = "PP-OCRv5_mobile"
     assert model in ["PP-OCRv5_server", "PP-OCRv5_mobile", "PP-OCRv4_server", "PP-OCRv4_mobile"]
     return lazyllm.TrainableModule(base_model=model).start()
+
+
+@NodeConstructor.register("ParameterExtractor")
+def make_parameter_extractor(base_model: str, param: list[str], type: list[str],
+                             description: list[str], require: list[bool]):
+    base_model = Engine().build_node(base_model).func
+    return lazyllm.tools.ParameterExtractor(base_model, param, type, description, require)
+
+
+@NodeConstructor.register("QustionRewrite")
+def make_qustion_rewrite(base_model: str, rewrite_prompt: str = "", formatter: str = "str"):
+    base_model = Engine().build_node(base_model).func
+    return lazyllm.tools.QustionRewrite(base_model, rewrite_prompt, formatter)
 
 
 @NodeConstructor.register("CodeGenerator")

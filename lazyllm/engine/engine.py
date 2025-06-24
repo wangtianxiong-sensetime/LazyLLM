@@ -811,7 +811,7 @@ def make_local_stt(base_model: str, deploy_method: str = "auto", url: Optional[s
     return STT(model)
 
 class TTS(lazyllm.Module):
-    def __init__(self, model: lazyllm.TrainableModule, target_dir: str = ''):
+    def __init__(self, model: lazyllm.TrainableModule, target_dir: str = None):
         super().__init__()
         self._m = model
         if target_dir:
@@ -833,10 +833,11 @@ def make_tts(kw: dict):
     else: raise ValueError(f'Not supported type {type} for TTS')
 
 @NodeConstructor.register('LocalTTS')
-def make_local_tts(base_model: str, deploy_method: str = "auto", url: Optional[str] = None):
+def make_local_tts(base_model: str, deploy_method: str = "auto", url: Optional[str] = None,
+                   target_dir: str = None):
     model = lazyllm.TrainableModule(base_model)
     setup_deploy_method(model, deploy_method, url)
-    return TTS(model)
+    return TTS(model, target_dir)
 
 @NodeConstructor.register('Embedding')
 def make_embedding(kw: dict):

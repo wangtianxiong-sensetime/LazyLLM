@@ -239,3 +239,17 @@ class BGEVLEmbedding(AbstractEmbedding):
             query_embs = self._embed(**query_inputs, output_hidden_states=True)[:, -1, :]
             res = torch.nn.functional.normalize(query_embs, dim=-1).cpu().numpy().tolist()
             return json.dumps(res[0])
+
+
+class RerankerDeploy(EmbeddingDeploy):
+    message_format = {
+        'query': 'query',  # str,
+        'documents': ['string'],
+        'top_n': 1,
+    }
+    keys_name_handle = {
+        'inputs': 'query',
+        'documents': 'documents',
+        'top_n': 'top_n',
+    }
+    default_headers = {'Content-Type': 'application/json'}

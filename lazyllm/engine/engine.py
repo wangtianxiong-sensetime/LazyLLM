@@ -123,6 +123,8 @@ class Engine(ABC):
 
     def subnodes(self, nodeid: str, recursive: bool = False):
         def _impl(nid, recursive):
+            if nid not in self._nodes:
+                return
             for id in self._nodes[nid].subitems:
                 yield id
                 if recursive: yield from self.subnodes(id, True)

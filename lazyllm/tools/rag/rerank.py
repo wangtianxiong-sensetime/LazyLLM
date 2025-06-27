@@ -112,6 +112,9 @@ class ModuleReranker(Reranker):
         if not nodes:
             return self._post_process([])
 
+        if isinstance(query, list) and isinstance(nodes, str):
+            query, nodes = nodes, query
+
         docs = [node.get_text(metadata_mode=MetadataMode.EMBED) for node in nodes]
         top_n = self._kwargs['topk'] if 'topk' in self._kwargs else len(docs)
         sorted_indices = self._reranker(query, documents=docs, top_n=top_n)

@@ -892,6 +892,7 @@ def make_constant(value: Any):
 def make_sql_call(sql_manager: Node, base_model: str, sql_examples: str = "", use_llm_for_sql_result: bool = True,
                   return_trace: bool = True):
     llm = Engine().build_node(base_model).func
+    sql_manager =  Engine().build_node(sql_manager).func
     return lazyllm.tools.SqlCall(llm=llm, sql_manager=sql_manager, sql_examples=sql_examples,
                                  use_llm_for_sql_result=use_llm_for_sql_result, return_trace=return_trace)
 

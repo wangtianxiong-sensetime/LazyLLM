@@ -142,6 +142,7 @@ def base64_to_file(base64_str: str, target_dir: Optional[str] = None) -> str:
     target_dir = target_dir if os.path.isdir(target_dir) else None
 
     file_path = tempfile.NamedTemporaryFile(prefix="base64_to_file_", suffix=suffix, dir=target_dir, delete=False).name
+    os.chmod(file_path, 0o644)
 
     with open(file_path, 'wb') as f:
         f.write(base64.b64decode(base64_data))

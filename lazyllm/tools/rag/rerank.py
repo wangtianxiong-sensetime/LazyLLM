@@ -30,6 +30,8 @@ class Reranker(ModuleBase, _PostProcess):
         _PostProcess.__init__(self, output_format, join)
 
     def forward(self, nodes: List[DocNode], query: str = "") -> List[DocNode]:
+        if isinstance(query, list) and isinstance(nodes, str):
+            query, nodes = nodes, query
         results = self.registered_reranker[self._name](nodes, query=query, **self._kwargs)
         LOG.debug(f"Rerank use `{self._name}` and get nodes: {results}")
         return self._post_process(results)

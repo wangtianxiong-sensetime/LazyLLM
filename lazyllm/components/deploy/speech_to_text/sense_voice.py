@@ -3,11 +3,12 @@ import importlib.util
 from urllib.parse import urlparse
 
 import lazyllm
-from lazyllm import LOG
-from lazyllm.components.utils.file_operate import base64_to_file
-from ..utils.downloader import ModelManager
+from lazyllm import LOG, LazyLLMLaunchersBase
+from ..base import LazyLLMDeployBase
+from ...utils.downloader import ModelManager
+from ...utils.file_operate import base64_to_file
 from lazyllm.thirdparty import funasr
-from lazyllm.components.deploy.base import LazyLLMDeployBase
+from typing import Optional
 
 
 def is_valid_url(url):
@@ -92,9 +93,12 @@ class SenseVoiceDeploy(LazyLLMDeployBase):
     }
     default_headers = {'Content-Type': 'application/json'}
 
-    def __init__(self, launcher=None, log_path=None):
-        self._launcher = launcher
+    def __init__(self, launcher: Optional[LazyLLMLaunchersBase] = None,
+                 log_path: Optional[str] = None, trust_remote_code: bool = True, port: Optional[int] = None):
+        super().__init__(launcher=launcher)
         self._log_path = log_path
+        self._trust_remote_code = trust_remote_code
+        self._port = port
 
     def __call__(self, finetuned_model=None, base_model=None):
         if not finetuned_model:
@@ -105,5 +109,5 @@ class SenseVoiceDeploy(LazyLLMDeployBase):
             LOG.warning(f"Note! That finetuned_model({finetuned_model}) is an invalid path, "
                         f"base_model({base_model}) will be used")
             finetuned_model = base_model
-        return lazyllm.deploy.RelayServer(func=SenseVoice(finetuned_model), launcher=self._launcher,
+        return lazyllm.deploy.RelayServer(port=self._port, func=SenseVoice(finetuned_model), launcher=self._launcher,
                                           log_path=self._log_path, cls='sensevoice')()

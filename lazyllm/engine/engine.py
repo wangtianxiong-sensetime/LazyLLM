@@ -321,8 +321,6 @@ def _build_pipeline(nodes):
         return lazyllm.Identity()
     else:
         return Engine().build_node(nodes[0] if isinstance(nodes, list) else nodes).func
-    else:
-        return lazyllm.Identity()
 
 
 @NodeConstructor.register('Switch', subitems=['nodes:dict'])

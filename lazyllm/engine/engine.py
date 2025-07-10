@@ -1,8 +1,6 @@
-import os
 from typing import List, Tuple, Dict, Type, Optional, Union, Any, overload
 import lazyllm
 from lazyllm import graph, switch, pipeline, package
-from lazyllm.components.utils.file_operate import base64_to_file
 from lazyllm.tools import IntentClassifier, SqlManager
 from lazyllm.tools.http_request.http_request import HttpRequest
 from lazyllm.common import compile_func
@@ -321,8 +319,6 @@ def _build_pipeline(nodes):
         return lazyllm.Identity()
     else:
         return Engine().build_node(nodes[0] if isinstance(nodes, list) else nodes).func
-    else:
-        return lazyllm.Identity()
 
 
 @NodeConstructor.register('Switch', subitems=['nodes:dict'])
@@ -811,7 +807,7 @@ class LLM(lazyllm.ModuleBase):
         else:
             raise TypeError("format must be a FormatterBase")
         return self
-    
+
     @property
     def func(self):
         return self._m

@@ -6,7 +6,6 @@ from lazyllm.components.utils.file_operate import base64_to_file, is_base64_with
 from lazyllm import LOG, LazyLLMLaunchersBase, is_valid_url, is_valid_path
 from ..base import LazyLLMDeployBase
 from ...utils.downloader import ModelManager
-from ...utils.file_operate import base64_to_file
 from lazyllm.thirdparty import funasr
 from typing import Optional
 

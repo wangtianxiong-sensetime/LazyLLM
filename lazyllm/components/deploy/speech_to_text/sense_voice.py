@@ -1,25 +1,16 @@
 import os
 import importlib.util
-from urllib.parse import urlparse
 
 import lazyllm
-from lazyllm import LOG, LazyLLMLaunchersBase
+from lazyllm.components.utils.file_operate import base64_to_file, is_base64_with_mime
+from lazyllm import LOG, LazyLLMLaunchersBase, is_valid_url, is_valid_path
 from ..base import LazyLLMDeployBase
 from ...utils.downloader import ModelManager
 from ...utils.file_operate import base64_to_file
 from lazyllm.thirdparty import funasr
 from typing import Optional
 
-
-def is_valid_url(url):
-    try:
-        result = urlparse(url)
-        return all([result.scheme, result.netloc])
-    except ValueError:
-        return False
-
-def is_valid_path(path):
-    return os.path.isfile(path)
+supported_formats = ('.mp3', '.wav', '.flac', '.m4a', '.aac', '.ogg', '.wma')
 
 class SenseVoice(object):
     def __init__(self, base_path, source=None, init=False):
@@ -52,14 +43,13 @@ class SenseVoice(object):
                 string = string['inputs']
         assert isinstance(string, str)
         string = string.strip()
-        if string.startswith('data:'):
-            try:
-                string = base64_to_file(string)
-            except Exception as e:
-                LOG.error(f"Error processing base64 encoding: {e}")
-                return "Error processing base64 encoding"
-        if not string.endswith(('.mp3', '.wav')):
-            return "Only '.mp3' and '.wav' formats in the form of file paths or URLs are supported."
+        try:
+            string = base64_to_file(string) if is_base64_with_mime(string) else string
+        except Exception as e:
+            LOG.error(f"Error processing base64 encoding: {e}")
+            return f"Error processing base64 encoding {e}"
+        if not string.endswith(supported_formats):
+            return f"Only {', '.join(supported_formats)} formats in the form of file paths or URLs are supported."
         if not is_valid_path(string) and not is_valid_url(string):
             return f"This {string} is not a valid URL or file path. Please check."
         res = self.model.generate(

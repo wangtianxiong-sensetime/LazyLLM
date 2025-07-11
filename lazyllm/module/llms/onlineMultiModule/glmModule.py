@@ -1,6 +1,6 @@
 import lazyllm
 from zhipuai import ZhipuAI
-from lazyllm.module import OnlineMultiModuleBase
+from .onlineMultiModuleBase import OnlineMultiModuleBase
 from typing import List
 import os
 

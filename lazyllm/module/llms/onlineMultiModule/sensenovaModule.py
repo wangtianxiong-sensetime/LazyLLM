@@ -1,5 +1,5 @@
 import lazyllm
-from lazyllm.module import OnlineMultiModuleBase
+from .onlineMultiModuleBase import OnlineMultiModuleBase
 
 class SensenovaModule(OnlineMultiModuleBase):
     def __init__(self, model_series: str, model_name: str, return_trace: bool = False, **kwargs):

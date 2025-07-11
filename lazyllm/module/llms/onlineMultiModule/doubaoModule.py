@@ -1,4 +1,4 @@
-from lazyllm.module import OnlineMultiModuleBase
+from .onlineMultiModuleBase import OnlineMultiModuleBase
 from volcenginesdkarkruntime import Ark
 import requests
 from typing import Union, Dict

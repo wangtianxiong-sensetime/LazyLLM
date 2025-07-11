@@ -1,7 +1,7 @@
 from openai import OpenAI
 from typing import List
 import lazyllm
-from lazyllm.module.onlineMultiModule.onlineMultiModuleBase import OnlineMultiModuleBase
+from lazyllm.module import OnlineMultiModuleBase
 from lazyllm.components.utils.file_operate import base64_to_file
 import os
 from pathlib import Path

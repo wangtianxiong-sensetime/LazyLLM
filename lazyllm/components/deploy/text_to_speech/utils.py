@@ -3,7 +3,7 @@ import uuid
 import base64
 from io import BytesIO
 from lazyllm.thirdparty import scipy, numpy as np
-from ...utils.file_operate import audio_to_base64, delete_old_files
+from ...utils.file_operate import delete_old_files
 import lazyllm
 from lazyllm import LOG, LazyLLMLaunchersBase
 from typing import Optional

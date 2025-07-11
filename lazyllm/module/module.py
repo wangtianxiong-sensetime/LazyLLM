@@ -23,10 +23,6 @@ from ..hook import LazyLLMHook
 from urllib.parse import urljoin
 from contextlib import contextmanager
 
-from lazyllm.components.auto.auto_helper import get_model_name
-from lazyllm.components.utils.file_operate import image_to_base64, audio_to_base64
-from lazyllm.common.utils import check_path
-
 # use _MetaBind:
 # if bind a ModuleBase: x, then hope: isinstance(x, ModuleBase)==True,
 # example: ActionModule.submodules:: isinstance(x, ModuleBase) will add submodule.

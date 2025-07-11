@@ -7,7 +7,7 @@ from lazyllm.components.formatter.formatterbase import (encode_query_with_filepa
                                                         decode_query_with_filepaths,
                                                         LAZYLLM_QUERY_PREFIX)
 
-from ..module import ModuleBase
+from lazyllm.module import ModuleBase
 
 class OnlineMultiModuleBase(ModuleBase):
     def __init__(self, model_series: str, model_name: str = None, return_trace: bool = False, **kwargs):

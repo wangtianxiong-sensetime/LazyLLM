@@ -23,7 +23,6 @@ from ..hook import LazyLLMHook
 from urllib.parse import urljoin
 from contextlib import contextmanager
 
-
 # use _MetaBind:
 # if bind a ModuleBase: x, then hope: isinstance(x, ModuleBase)==True,
 # example: ActionModule.submodules:: isinstance(x, ModuleBase) will add submodule.

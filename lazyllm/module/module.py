@@ -22,7 +22,7 @@ from ..client import get_redis, redis_client
 from ..hook import LazyLLMHook
 from urllib.parse import urljoin
 from contextlib import contextmanager
-
+import copy
 # use _MetaBind:
 # if bind a ModuleBase: x, then hope: isinstance(x, ModuleBase)==True,
 # example: ActionModule.submodules:: isinstance(x, ModuleBase) will add submodule.
@@ -92,7 +92,7 @@ class ModuleBase(metaclass=_MetaBind):
         hook_objs = []
         for hook_type in self._hooks:
             if isinstance(hook_type, LazyLLMHook):
-                hook_objs.append(hook_type)
+                hook_objs.append(copy.deepcopy(hook_type))
             else:
                 hook_objs.append(hook_type(self))
             hook_objs[-1].pre_hook(*args, **kw)

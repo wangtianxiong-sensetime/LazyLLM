@@ -13,7 +13,7 @@ from ..hook import LazyLLMHook
 from lazyllm import FileSystemQueue
 from contextlib import contextmanager
 from typing import Optional, Union, Dict
-
+import copy
 
 import copy
 # use _MetaBind:

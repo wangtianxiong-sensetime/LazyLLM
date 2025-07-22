@@ -670,6 +670,8 @@ class Graph(LazyLLMFlowsBase):
             input = input.args
 
         if node.arg_names:
+            if isinstance(input, str):
+                input = [input]
             kw.update({name: value for name, value in zip(node.arg_names, input)})
             input = package()
 

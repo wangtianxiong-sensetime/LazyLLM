@@ -212,7 +212,7 @@ class K8sLauncher(LazyLLMLaunchersBase):
             self.gateway_retry = launcher.gateway_retry
             self.on_gateway = launcher.on_gateway
             self.image = launcher.image
-            self.resource_config = launcher.resource_config
+            self.resource_config = launcher.resource_config if launcher.resource_config else {}
 
         def _wrap_cmd(self, cmd):
             pythonpath = os.getenv("PYTHONPATH", '')

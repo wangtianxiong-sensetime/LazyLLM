@@ -36,7 +36,9 @@ class QwenSTTModule(QwenModule):
         call_params = {'model': self._model_name, 'file_urls': files, **kwargs}
         if self._api_key: call_params['api_key'] = self._api_key
         task_response = dashscope.audio.asr.Transcription.async_call(**call_params)
-        transcribe_response = dashscope.audio.asr.Transcription.wait(task=task_response.output.task_id)
+        wait_params = {"task": task_response.output.task_id}
+        if self._api_key: wait_params['api_key'] = self._api_key
+        transcribe_response = dashscope.audio.asr.Transcription.wait(**wait_params)
         if transcribe_response.status_code == HTTPStatus.OK:
             result_text = ""
             for task in transcribe_response.output.results:
@@ -72,7 +74,9 @@ class QwenTextToImageModule(QwenModule):
         if self._api_key: call_params['api_key'] = self._api_key
         if seed: call_params['seed'] = seed
         task_response = dashscope.ImageSynthesis.async_call(**call_params)
-        response = dashscope.ImageSynthesis.wait(task=task_response.output.task_id)
+        wait_params = {"task": task_response.output.task_id}
+        if self._api_key: wait_params['api_key'] = self._api_key
+        response = dashscope.ImageSynthesis.wait(**wait_params)
         if response.status_code == HTTPStatus.OK:
             return encode_query_with_filepaths(None, bytes_to_file([requests.get(result.url).content
                                                                     for result in response.output.results]))

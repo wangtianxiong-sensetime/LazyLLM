@@ -3,6 +3,7 @@ import lazyllm
 from lazyllm import graph, switch, pipeline, package
 from lazyllm.tools import IntentClassifier, SqlManager
 from lazyllm.tools.http_request.http_request import HttpRequest
+from lazyllm.tools.mcp.client import MCPClient
 from lazyllm.common import compile_func
 from lazyllm.components.formatter.formatterbase import (
     LAZYLLM_QUERY_PREFIX,
@@ -490,6 +491,15 @@ def _get_tools(tools):
 def make_tools_for_llm(tools: List[str]):
     return lazyllm.tools.ToolManager(_get_tools(tools))
 
+@NodeConstructor.register('MCPTool', subitems=['tools'])
+def make_mcp_tool(command_or_url: str, tool_name: str, args: List[str] = [], env: Dict[str, str] = None,
+                  headers: Dict[str, str] = None, timeout: float = 5):
+    client = MCPClient(command_or_url, args, env, headers, timeout)
+    tools = client.get_tools([tool_name])
+    assert len(tools) == 1, f"Current MCP client does not support tool '{tool_name}'. \
+        Please check if the tool name is correct."
+    return tools[0]
+
 @NodeConstructor.register('FunctionCall', subitems=['tools'])
 def make_fc(base_model: str, tools: List[str], algorithm: Optional[str] = None):
     f = lazyllm.tools.PlanAndSolveAgent if algorithm == 'PlanAndSolve' else \
@@ -834,7 +844,7 @@ def make_llm(kw: dict):
 
 
 class STT(lazyllm.Module):
-    def __init__(self, model: Union[lazyllm.TrainableModule, lazyllm.OnlineMultiModal]):
+    def __init__(self, model: Union[lazyllm.TrainableModule, lazyllm.OnlineMultiModalModule]):
         super().__init__()
         self._m = model if not isinstance(model, STT) else model._m
 
@@ -881,13 +891,13 @@ NodeConstructor.register('OnlineSTT')
 def make_online_stt(source: str = None, base_model: Optional[str] = None, base_url: Optional[str] = None,
                     api_key: Optional[str] = None):
     if source: source = source.lower()
-    model = lazyllm.OnlineMultiModal(source=source, function='stt', model=base_model,
-                                     base_url=base_url, api_key=api_key)
+    model = lazyllm.OnlineMultiModalModule(source=source, function='stt', model=base_model,
+                                           base_url=base_url, api_key=api_key)
     return STT(model)
 
 
 class TTS(lazyllm.Module):
-    def __init__(self, model: Union[lazyllm.TrainableModule, lazyllm.OnlineMultiModal],
+    def __init__(self, model: Union[lazyllm.TrainableModule, lazyllm.OnlineMultiModalModule],
                  target_dir: Optional[str] = None):
         super().__init__()
         self._m = model if not isinstance(model, TTS) else model._m
@@ -929,8 +939,8 @@ def make_local_tts(base_model: str, deploy_method: str = "auto", url: Optional[s
 def make_online_tts(source: str = None, base_model: Optional[str] = None, base_url: Optional[str] = None,
                     api_key: Optional[str] = None):
     if source: source = source.lower()
-    model = lazyllm.OnlineMultiModal(source=source, function='tts', model=base_model,
-                                     base_url=base_url, api_key=api_key)
+    model = lazyllm.OnlineMultiModalModule(source=source, function='tts', model=base_model,
+                                           base_url=base_url, api_key=api_key)
     return model
 
 @NodeConstructor.register('Embedding')
@@ -977,7 +987,7 @@ def make_http(method: str, url: str, api_key: str = '', headers: dict = {}, para
 
 
 class SD(lazyllm.Module):
-    def __init__(self, model: Union[lazyllm.TrainableModule, lazyllm.OnlineMultiModal],
+    def __init__(self, model: Union[lazyllm.TrainableModule, lazyllm.OnlineMultiModalModule],
                  target_dir: Optional[str] = None):
         super().__init__()
         self._m = model if not isinstance(model, SD) else model._m
@@ -1014,8 +1024,8 @@ def make_local_sd(base_model: str, deploy_method: str = "auto", url: Optional[st
 def make_online_sd(source: str = None, base_model: Optional[str] = None, base_url: Optional[str] = None,
                    api_key: Optional[str] = None):
     if source: source = source.lower()
-    model = lazyllm.OnlineMultiModal(source=source, function='text2image', model=base_model,
-                                     base_url=base_url, api_key=api_key)
+    model = lazyllm.OnlineMultiModalModule(source=source, function='text2image', model=base_model,
+                                           base_url=base_url, api_key=api_key)
     return model
 
 

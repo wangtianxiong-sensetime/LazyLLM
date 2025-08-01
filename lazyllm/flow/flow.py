@@ -510,7 +510,11 @@ class Switch(LazyLLMFlowsBase):
             exp = __input[0]
             __input = __input[1] if len(__input) == 2 else __input[1:]
 
-        if self._conversion: exp = self._conversion(*exp)
+        if self._conversion:
+            if isinstance(exp,tuple) or isinstance(exp, list):
+                exp = self._conversion(*exp)
+            else:
+                exp = self._conversion(exp)
 
         for idx, cond in enumerate(self.conds):
             if (callable(cond) and self.invoke(cond, exp) is True) or (exp == cond) or (

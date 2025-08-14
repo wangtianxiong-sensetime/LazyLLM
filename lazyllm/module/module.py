@@ -15,7 +15,6 @@ from contextlib import contextmanager
 from typing import Optional, Union, Dict
 import copy
 
-import copy
 # use _MetaBind:
 # if bind a ModuleBase: x, then hope: isinstance(x, ModuleBase)==True,
 # example: ActionModule.submodules:: isinstance(x, ModuleBase) will add submodule.

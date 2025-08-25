@@ -38,7 +38,10 @@ class OnlineEmbeddingModuleBase(ModuleBase):
         proxies = {'http': None, 'https': None} if self.NO_PROXY else None
         with requests.post(self._embed_url, json=data, headers=self._headers, proxies=proxies) as r:
             if r.status_code == 200:
-                return self._parse_response(r.json())
+                if self.type == 'EMBED':
+                    return self._parse_response(r.json(), input)
+                else:
+                    return self._parse_response(r.json())
             else:
                 raise requests.RequestException('\n'.join([c.decode('utf-8') for c in r.iter_content(None)]))
 
@@ -52,5 +55,11 @@ class OnlineEmbeddingModuleBase(ModuleBase):
 
         return json_data
 
-    def _parse_response(self, response: Dict[str, Any]) -> List[float]:
-        return response['data'][0]['embedding']
+    def _parse_response(self, response: Dict[str, Any], input: Union[List, str] = None) -> List[float]:
+        if input is not None:
+            if isinstance(input, str):
+                return response['data'][0]['embedding']
+            else:
+                return [res['embedding'] for res in response['data']]
+        else:
+            return None

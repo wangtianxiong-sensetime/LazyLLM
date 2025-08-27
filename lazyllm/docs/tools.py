@@ -931,22 +931,28 @@ Args:
     return_trace (bool): Whether to record processing trace. Default is True.
 ''')
 
-add_chinese_doc('rag.readers.MagicPDFReader', '''\
-用于通过 MagicPDF 服务解析 PDF 文件内容的模块。支持上传文件或通过 URL 方式调用解析接口，解析结果经过回调函数处理成文档节点列表。
+add_chinese_doc('rag.readers.MineruPDFReader', '''\
+用于通过 MinerU 服务解析 PDF 文件内容的模块。支持上传文件或通过 URL 方式调用解析接口，解析结果经过回调函数处理成文档节点列表。
 
 Args:
-    magic_url (str): MagicPDF 服务的接口 URL。
-    callback (Optional[Callable[[List[dict], Path, dict], List[DocNode]]]): 解析结果回调函数，接收解析元素列表、文件路径及额外信息，返回文档节点列表。默认将所有文本合并为一个节点。
+    url (str): MineruPDFReader 服务的接口 URL。
     upload_mode (bool): 是否采用文件上传模式调用接口，默认为 False，即通过 JSON 请求文件路径。
+    extract_table (bool): 是否提取表格，默认为 True。
+    extract_formula (bool): 是否提取公式，默认为 True。
+    split_doc (bool): 是否分割文档，默认为 True。
+    post_func (Optional[Callable]): 后处理函数。
 ''')
 
-add_english_doc('rag.readers.MagicPDFReader', '''\
-Module to parse PDF content via the MagicPDF service. Supports file upload or URL-based parsing, with a callback to process the parsed elements into document nodes.
+add_english_doc('rag.readers.MineruPDFReader', '''\
+Module to parse PDF content via the MineruPDFReader service. Supports file upload or URL-based parsing, with a callback to process the parsed elements into document nodes.
 
 Args:
-    magic_url (str): The MagicPDF service API URL.
-    callback (Optional[Callable[[List[dict], Path, dict], List[DocNode]]]): A callback function that takes parsed element list, file path, and extra info, returns a list of DocNode. Defaults to merging all text into a single node.
+    url (str): The MineruPDFReader service API URL.
     upload_mode (bool): Whether to use file upload mode for the API call. Default is False, meaning JSON request with file path.
+    extract_table (bool): Whether to extract tables. Default is True.
+    extract_formula (bool): Whether to extract formulas. Default is True.
+    split_doc (bool): Whether to split the document. Default is True.
+    post_func (Optional[Callable]): Post-processing function.
 ''')
 
 add_chinese_doc('rag.readers.MarkdownReader', '''\
@@ -4918,28 +4924,32 @@ add_example('HttpRequest', ['''\
 add_chinese_doc('JobDescription', '''\
 模型部署任务描述的数据结构。
 
-用于创建模型推理任务时指定部署配置，包括模型名称与所需 GPU 数量。
+用于创建模型推理任务时指定部署配置，包括服务名称、模型名称、框架类型与所需 GPU 数量。
 
 Args:
-    deploy_model (str): 要部署的模型名称，默认为 "qwen1.5-0.5b-chat"。
+    service_name (str): 服务名称，必需参数。
+    model_name (str): 要部署的模型名称，默认为 "qwen1.5-0.5b-chat"。
+    framework (str): 推理框架类型，默认为 "auto"。
     num_gpus (int): 所需的 GPU 数量，默认为 1。
 ''')
 
 add_english_doc('JobDescription', '''\
 Model deployment job description schema.
 
-Used to specify the configuration for creating a model inference job, including model name and GPU requirements.
+Used to specify the configuration for creating a model inference job, including service name, model name, framework type and GPU requirements.
 
 Args:
-    deploy_model (str): The model to be deployed. Default is "qwen1.5-0.5b-chat".
+    service_name (str): Service name, required parameter.
+    model_name (str): The model to be deployed. Default is "qwen1.5-0.5b-chat".
+    framework (str): Inference framework type. Default is "auto".
     num_gpus (int): Number of GPUs required for deployment. Default is 1.
 ''')
 
 add_example('JobDescription', ['''\
 >>> from lazyllm.components import JobDescription
->>> job = JobDescription(deploy_model="deepseek-coder", num_gpus=2)
+>>> job = JobDescription(service_name="my-service", model_name="deepseek-coder", framework="vllm", num_gpus=2)
 >>> print(job.dict())
-... {'deploy_model': 'deepseek-coder', 'num_gpus': 2}
+... {'service_name': 'my-service', 'model_name': 'deepseek-coder', 'framework': 'vllm', 'num_gpus': 2}
 '''])
 
 
